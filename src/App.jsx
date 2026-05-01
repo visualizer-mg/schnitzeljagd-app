@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import MastermindDashboard from './pages/MastermindDashboard';
 
 function App() {
   const [player, setPlayer] = useState(null);
@@ -27,6 +28,11 @@ function App() {
 
   if (!player) {
     return <Login onLogin={handleLogin} />;
+  }
+
+  // Mastermind gets the admin dashboard
+  if (player.role === 'mastermind') {
+    return <MastermindDashboard player={player} onLogout={handleLogout} />;
   }
 
   return <Dashboard player={player} onLogout={handleLogout} />;

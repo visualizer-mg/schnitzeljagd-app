@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import TreasureChest from '../components/TreasureChest';
+
+// Same puzzle config as Dashboard — keep in sync
+const PLAYER_PUZZLES = {
+  mark: [
+    { id: 'mark-1', label: 'Rätsel 1' },
+    { id: 'mark-2', label: 'Rätsel 2' },
+    { id: 'mark-3', label: 'Rätsel 3' },
+  ],
+};
 
 export default function MastermindDashboard({ player, onLogout }) {
   const [players, setPlayers] = useState([]);
@@ -361,6 +371,50 @@ function PlayerView({ player, progress, clues, events, onUnlockPuzzle, onSolvePu
           🔄
         </button>
       </div>
+
+      {/* Spieler-Vorschau: Truhen */}
+      {PLAYER_PUZZLES[player.name] && (
+        <div style={{
+          padding: 'clamp(16px, 4vw, 24px)',
+          background: 'rgba(245, 158, 11, 0.05)',
+          border: '1px solid rgba(245, 158, 11, 0.15)',
+          borderRadius: 16,
+          marginBottom: 16,
+        }}>
+          <div style={{
+            fontSize: 'clamp(11px, 2.8vw, 12px)',
+            color: '#f59e0b',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            marginBottom: 16,
+            textAlign: 'center',
+            fontWeight: 600,
+          }}>
+            👁️ Spieler-Vorschau
+          </div>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 'clamp(16px, 4vw, 32px)',
+            flexWrap: 'wrap',
+          }}>
+            {PLAYER_PUZZLES[player.name].map(puzzle => {
+              const prog = progress.find(p => p.puzzle_id === puzzle.id);
+              const isSolved = prog?.status === 'solved';
+              const isLocked = prog?.status === 'locked';
+
+              return (
+                <TreasureChest
+                  key={puzzle.id}
+                  label={puzzle.label}
+                  locked={isLocked}
+                  onOpen={() => {}}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div style={{

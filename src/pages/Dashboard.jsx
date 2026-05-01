@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import TreasureChest from '../components/TreasureChest';
+
+// Placeholder puzzles per player (will later come from Supabase)
+const PLAYER_PUZZLES = {
+  mark: [
+    { id: 'mark-1', label: 'Rätsel 1' },
+    { id: 'mark-2', label: 'Rätsel 2' },
+    { id: 'mark-3', label: 'Rätsel 3' },
+  ],
+};
 
 export default function Dashboard({ player, onLogout }) {
   const [progress, setProgress] = useState([]);
   const [clues, setClues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [openedChests, setOpenedChests] = useState(new Set());
 
   useEffect(() => {
     loadData();
@@ -17,10 +28,29 @@ export default function Dashboard({ player, onLogout }) {
     ]);
     setProgress(progressRes.data || []);
     setClues(cluesRes.data || []);
+
+    // Mark already-solved puzzles as opened
+    const solved = new Set();
+    (progressRes.data || []).forEach(p => {
+      if (p.status === 'solved') solved.add(p.puzzle_id);
+    });
+    setOpenedChests(solved);
     setLoading(false);
   };
 
+  const handleChestOpen = async (puzzleId) => {
+    setOpenedChests(prev => new Set([...prev, puzzleId]));
+
+    // Log the event
+    await supabase.from('event_log').insert({
+      player_id: player.id,
+      event_type: 'chest_opened',
+      event_data: { puzzle_id: puzzleId },
+    });
+  };
+
   const solvedCount = progress.filter(p => p.status === 'solved').length;
+  const puzzles = PLAYER_PUZZLES[player.name] || null;
 
   return (
     <div style={{
@@ -98,7 +128,7 @@ export default function Dashboard({ player, onLogout }) {
             background: 'rgba(74, 222, 128, 0.08)',
             border: '1px solid rgba(74, 222, 128, 0.2)',
             borderRadius: 16,
-            marginBottom: 'clamp(16px, 4vw, 24px)',
+            marginBottom: 'clamp(24px, 6vw, 36px)',
             textAlign: 'center',
           }}>
             <div style={{ fontSize: 'clamp(28px, 8vw, 40px)', marginBottom: 8, lineHeight: 1 }}>🎂</div>
@@ -121,127 +151,166 @@ export default function Dashboard({ player, onLogout }) {
             </p>
           </div>
 
-          {/* Stats */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: 'clamp(8px, 2vw, 12px)',
-            marginBottom: 'clamp(20px, 5vw, 28px)',
-          }}>
-            {[
-              { value: solvedCount, label: 'Gelöst', color: '#4ade80' },
-              { value: clues.length, label: 'Hinweise', color: '#60a5fa' },
-              { value: progress.filter(p => p.status === 'unlocked').length, label: 'Offen', color: '#f59e0b' },
-            ].map(stat => (
-              <div key={stat.label} style={{
-                padding: 'clamp(14px, 3.5vw, 20px) clamp(8px, 2vw, 16px)',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 14,
+          {/* Treasure Chests (for players with puzzles) */}
+          {puzzles ? (
+            <>
+              <h3 style={{
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                color: 'rgba(255,255,255,0.5)',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                marginBottom: 'clamp(16px, 4vw, 24px)',
                 textAlign: 'center',
               }}>
-                <div style={{
-                  fontSize: 'clamp(22px, 6vw, 32px)',
-                  fontWeight: 700,
-                  color: stat.color,
-                  lineHeight: 1,
-                }}>
-                  {stat.value}
-                </div>
-                <div style={{
-                  fontSize: 'clamp(10px, 2.5vw, 12px)',
-                  color: 'rgba(255,255,255,0.4)',
-                  marginTop: 'clamp(4px, 1vw, 6px)',
-                }}>
-                  {stat.label}
-                </div>
+                Deine Schatztruhen
+              </h3>
+
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 'clamp(24px, 6vw, 40px)',
+                marginBottom: 'clamp(24px, 6vw, 36px)',
+              }}>
+                {puzzles.map(puzzle => {
+                  const prog = progress.find(p => p.puzzle_id === puzzle.id);
+                  const isLocked = prog ? prog.status === 'locked' : false;
+                  const isSolved = prog ? prog.status === 'solved' : false;
+
+                  return (
+                    <TreasureChest
+                      key={puzzle.id}
+                      label={puzzle.label}
+                      locked={isLocked}
+                      onOpen={() => handleChestOpen(puzzle.id)}
+                    />
+                  );
+                })}
               </div>
-            ))}
-          </div>
-
-          {/* Puzzle List */}
-          <h3 style={{
-            fontSize: 'clamp(12px, 3vw, 14px)',
-            color: 'rgba(255,255,255,0.5)',
-            textTransform: 'uppercase',
-            letterSpacing: '1px',
-            marginBottom: 12,
-          }}>
-            Deine Rätsel
-          </h3>
-
-          {loading ? (
-            <div style={{
-              textAlign: 'center',
-              padding: 'clamp(30px, 8vw, 50px)',
-              color: 'rgba(255,255,255,0.4)',
-            }}>
-              <div style={{ fontSize: 28, marginBottom: 8, animation: 'pulse 1.5s ease infinite' }}>🔍</div>
-              Lade...
-            </div>
-          ) : progress.length === 0 ? (
-            <div style={{
-              padding: 'clamp(28px, 7vw, 44px) clamp(16px, 4vw, 24px)',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 14,
-              textAlign: 'center',
-              color: 'rgba(255,255,255,0.4)',
-              fontSize: 'clamp(13px, 3.2vw, 15px)',
-              lineHeight: 1.6,
-            }}>
-              Noch keine Rätsel freigeschaltet.<br />
-              Bald geht's los! 🎉
-            </div>
+            </>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {progress.map(p => (
-                <div key={p.id} style={{
-                  padding: 'clamp(14px, 3.5vw, 18px) clamp(14px, 3.5vw, 20px)',
-                  background: p.status === 'solved'
-                    ? 'rgba(74, 222, 128, 0.08)'
-                    : p.status === 'unlocked'
-                    ? 'rgba(96, 165, 250, 0.08)'
-                    : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${
-                    p.status === 'solved' ? 'rgba(74, 222, 128, 0.2)'
-                    : p.status === 'unlocked' ? 'rgba(96, 165, 250, 0.2)'
-                    : 'rgba(255,255,255,0.08)'
-                  }`,
-                  borderRadius: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: p.status === 'unlocked' ? 'pointer' : 'default',
-                  transition: 'transform 0.15s ease',
-                  minHeight: 56,
-                }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
+            <>
+              {/* Stats for players without chest view yet */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: 'clamp(8px, 2vw, 12px)',
+                marginBottom: 'clamp(20px, 5vw, 28px)',
+              }}>
+                {[
+                  { value: solvedCount, label: 'Gelöst', color: '#4ade80' },
+                  { value: clues.length, label: 'Hinweise', color: '#60a5fa' },
+                  { value: progress.filter(p => p.status === 'unlocked').length, label: 'Offen', color: '#f59e0b' },
+                ].map(stat => (
+                  <div key={stat.label} style={{
+                    padding: 'clamp(14px, 3.5vw, 20px) clamp(8px, 2vw, 16px)',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 14,
+                    textAlign: 'center',
+                  }}>
                     <div style={{
-                      fontWeight: 500,
-                      fontSize: 'clamp(13px, 3.2vw, 15px)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      fontSize: 'clamp(22px, 6vw, 32px)',
+                      fontWeight: 700,
+                      color: stat.color,
+                      lineHeight: 1,
                     }}>
-                      {p.puzzle_id}
+                      {stat.value}
                     </div>
-                    {p.solved_at && (
-                      <div style={{
-                        fontSize: 'clamp(10px, 2.5vw, 11px)',
-                        color: 'rgba(255,255,255,0.3)',
-                        marginTop: 2,
-                      }}>
-                        Gelöst am {new Date(p.solved_at).toLocaleDateString('de-DE')}
-                      </div>
-                    )}
+                    <div style={{
+                      fontSize: 'clamp(10px, 2.5vw, 12px)',
+                      color: 'rgba(255,255,255,0.4)',
+                      marginTop: 'clamp(4px, 1vw, 6px)',
+                    }}>
+                      {stat.label}
+                    </div>
                   </div>
-                  <span style={{ fontSize: 'clamp(16px, 4vw, 20px)', flexShrink: 0, marginLeft: 8 }}>
-                    {p.status === 'solved' ? '✅' : p.status === 'unlocked' ? '🔓' : '🔒'}
-                  </span>
+                ))}
+              </div>
+
+              {/* Puzzle List */}
+              <h3 style={{
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                color: 'rgba(255,255,255,0.5)',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                marginBottom: 12,
+              }}>
+                Deine Rätsel
+              </h3>
+
+              {loading ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: 'clamp(30px, 8vw, 50px)',
+                  color: 'rgba(255,255,255,0.4)',
+                }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>🔍</div>
+                  Lade...
                 </div>
-              ))}
-            </div>
+              ) : progress.length === 0 ? (
+                <div style={{
+                  padding: 'clamp(28px, 7vw, 44px) clamp(16px, 4vw, 24px)',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 14,
+                  textAlign: 'center',
+                  color: 'rgba(255,255,255,0.4)',
+                  fontSize: 'clamp(13px, 3.2vw, 15px)',
+                  lineHeight: 1.6,
+                }}>
+                  Noch keine Rätsel freigeschaltet.<br />
+                  Bald geht's los! 🎉
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {progress.map(p => (
+                    <div key={p.id} style={{
+                      padding: 'clamp(14px, 3.5vw, 18px) clamp(14px, 3.5vw, 20px)',
+                      background: p.status === 'solved'
+                        ? 'rgba(74, 222, 128, 0.08)'
+                        : p.status === 'unlocked'
+                        ? 'rgba(96, 165, 250, 0.08)'
+                        : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${
+                        p.status === 'solved' ? 'rgba(74, 222, 128, 0.2)'
+                        : p.status === 'unlocked' ? 'rgba(96, 165, 250, 0.2)'
+                        : 'rgba(255,255,255,0.08)'
+                      }`,
+                      borderRadius: 14,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      minHeight: 56,
+                    }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{
+                          fontWeight: 500,
+                          fontSize: 'clamp(13px, 3.2vw, 15px)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}>
+                          {p.puzzle_id}
+                        </div>
+                        {p.solved_at && (
+                          <div style={{
+                            fontSize: 'clamp(10px, 2.5vw, 11px)',
+                            color: 'rgba(255,255,255,0.3)',
+                            marginTop: 2,
+                          }}>
+                            Gelöst am {new Date(p.solved_at).toLocaleDateString('de-DE')}
+                          </div>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 'clamp(16px, 4vw, 20px)', flexShrink: 0, marginLeft: 8 }}>
+                        {p.status === 'solved' ? '✅' : p.status === 'unlocked' ? '🔓' : '🔒'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {/* Matrix Clues */}

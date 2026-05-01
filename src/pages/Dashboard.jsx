@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import TreasureChest from '../components/TreasureChest';
+import XWingGame from '../components/XWingGame';
+import CheeseGame from '../components/CheeseGame';
+import HorseGame from '../components/HorseGame';
 
-// Placeholder puzzles per player (will later come from Supabase)
+// Puzzles per player — first chest = game
 const PLAYER_PUZZLES = {
   mark: [
-    { id: 'mark-1', label: 'Rätsel 1' },
+    { id: 'mark-1', label: 'X-Wing Assault', game: 'xwing' },
     { id: 'mark-2', label: 'Rätsel 2' },
     { id: 'mark-3', label: 'Rätsel 3' },
+  ],
+  ellen: [
+    { id: 'ellen-1', label: 'Käse-Jagd', game: 'cheese' },
+  ],
+  theresa: [
+    { id: 'theresa-1', label: 'Himmelsritt', game: 'horse' },
   ],
 };
 
@@ -16,6 +25,7 @@ export default function Dashboard({ player, onLogout }) {
   const [clues, setClues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openedChests, setOpenedChests] = useState(new Set());
+  const [activeGame, setActiveGame] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -38,7 +48,7 @@ export default function Dashboard({ player, onLogout }) {
     setLoading(false);
   };
 
-  const handleChestOpen = async (puzzleId) => {
+  const handleChestOpen = async (puzzleId, game) => {
     setOpenedChests(prev => new Set([...prev, puzzleId]));
 
     // Log the event
@@ -47,10 +57,67 @@ export default function Dashboard({ player, onLogout }) {
       event_type: 'chest_opened',
       event_data: { puzzle_id: puzzleId },
     });
+
+    // If this chest has a game, launch it after a short delay
+    if (game) {
+      setTimeout(() => setActiveGame(game), 1500);
+    }
+  };
+
+  const handleGameWin = () => {
+    setActiveGame(null);
+    // Reload data in case progress was updated
+    loadData();
   };
 
   const solvedCount = progress.filter(p => p.status === 'solved').length;
   const puzzles = PLAYER_PUZZLES[player.name] || null;
+
+  // ─── Fullscreen Game Mode ───
+  if (activeGame) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: '#000',
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        {/* Back button */}
+        <button
+          onClick={() => setActiveGame(null)}
+          style={{
+            position: 'absolute',
+            top: 'max(12px, env(safe-area-inset-top))',
+            left: 12,
+            zIndex: 10000,
+            padding: '8px 14px',
+            background: 'rgba(0,0,0,0.7)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: 10,
+            color: '#fff',
+            fontSize: 13,
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          ← Zurück
+        </button>
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          {activeGame === 'xwing' && (
+            <XWingGame matrixClue="KRAFT" onWin={handleGameWin} />
+          )}
+          {activeGame === 'cheese' && (
+            <CheeseGame matrixClue="KÄSE" onWin={handleGameWin} />
+          )}
+          {activeGame === 'horse' && (
+            <HorseGame matrixClue="FREIHEIT" onWin={handleGameWin} />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -182,7 +249,7 @@ export default function Dashboard({ player, onLogout }) {
                       key={puzzle.id}
                       label={puzzle.label}
                       locked={isLocked}
-                      onOpen={() => handleChestOpen(puzzle.id)}
+                      onOpen={() => handleChestOpen(puzzle.id, puzzle.game)}
                     />
                   );
                 })}

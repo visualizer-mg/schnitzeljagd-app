@@ -5,9 +5,15 @@ import TreasureChest from '../components/TreasureChest';
 // Same puzzle config as Dashboard — keep in sync
 const PLAYER_PUZZLES = {
   mark: [
-    { id: 'mark-1', label: 'Rätsel 1' },
+    { id: 'mark-1', label: 'X-Wing Assault', game: 'xwing' },
     { id: 'mark-2', label: 'Rätsel 2' },
     { id: 'mark-3', label: 'Rätsel 3' },
+  ],
+  ellen: [
+    { id: 'ellen-1', label: 'Käse-Jagd', game: 'cheese' },
+  ],
+  theresa: [
+    { id: 'theresa-1', label: 'Himmelsritt', game: 'horse' },
   ],
 };
 

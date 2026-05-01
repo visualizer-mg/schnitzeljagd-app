@@ -25,7 +25,6 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    // Log the login event
     await supabase.from('event_log').insert({
       player_id: data.id,
       event_type: 'login',
@@ -40,26 +39,29 @@ export default function Login({ onLogin }) {
   return (
     <div style={{
       minHeight: '100vh',
+      minHeight: '100dvh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)',
       fontFamily: "'Inter', -apple-system, sans-serif",
+      padding: '20px 16px',
     }}>
       <div style={{
         width: '100%',
-        maxWidth: 380,
-        padding: '40px 32px',
+        maxWidth: 400,
+        padding: 'clamp(24px, 6vw, 40px) clamp(20px, 5vw, 32px)',
         background: 'rgba(255,255,255,0.05)',
-        borderRadius: 16,
+        borderRadius: 20,
         border: '1px solid rgba(255,255,255,0.1)',
         backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
       }}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 48, marginBottom: 8 }}>🥩</div>
+        <div style={{ textAlign: 'center', marginBottom: 'clamp(24px, 5vw, 36px)' }}>
+          <div style={{ fontSize: 'clamp(40px, 10vw, 56px)', marginBottom: 8, lineHeight: 1 }}>🥩</div>
           <h1 style={{
-            fontSize: 24,
+            fontSize: 'clamp(20px, 5vw, 26px)',
             fontWeight: 700,
             color: '#4ade80',
             margin: 0,
@@ -68,7 +70,7 @@ export default function Login({ onLogin }) {
             SCHNITZELJAGD
           </h1>
           <p style={{
-            fontSize: 13,
+            fontSize: 'clamp(12px, 3vw, 14px)',
             color: 'rgba(255,255,255,0.4)',
             marginTop: 4,
           }}>
@@ -83,7 +85,7 @@ export default function Login({ onLogin }) {
               display: 'block',
               fontSize: 12,
               color: 'rgba(255,255,255,0.5)',
-              marginBottom: 6,
+              marginBottom: 8,
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
             }}>
@@ -94,17 +96,23 @@ export default function Login({ onLogin }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="z.B. andreas"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
               style={{
                 width: '100%',
-                padding: '12px 14px',
+                padding: '14px 16px',
                 background: 'rgba(255,255,255,0.08)',
                 border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 8,
+                borderRadius: 12,
                 color: '#fff',
-                fontSize: 15,
+                fontSize: '16px',
                 outline: 'none',
                 boxSizing: 'border-box',
+                transition: 'border-color 0.2s',
               }}
+              onFocus={(e) => e.target.style.borderColor = 'rgba(74, 222, 128, 0.5)'}
+              onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
             />
           </div>
 
@@ -113,7 +121,7 @@ export default function Login({ onLogin }) {
               display: 'block',
               fontSize: 12,
               color: 'rgba(255,255,255,0.5)',
-              marginBottom: 6,
+              marginBottom: 8,
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
             }}>
@@ -124,29 +132,34 @@ export default function Login({ onLogin }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••"
+              autoComplete="current-password"
               style={{
                 width: '100%',
-                padding: '12px 14px',
+                padding: '14px 16px',
                 background: 'rgba(255,255,255,0.08)',
                 border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 8,
+                borderRadius: 12,
                 color: '#fff',
-                fontSize: 15,
+                fontSize: '16px',
                 outline: 'none',
                 boxSizing: 'border-box',
+                transition: 'border-color 0.2s',
               }}
+              onFocus={(e) => e.target.style.borderColor = 'rgba(74, 222, 128, 0.5)'}
+              onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
             />
           </div>
 
           {error && (
             <div style={{
-              padding: '10px 14px',
+              padding: '12px 16px',
               background: 'rgba(239, 68, 68, 0.15)',
               border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: 8,
+              borderRadius: 12,
               color: '#ef4444',
-              fontSize: 13,
+              fontSize: 14,
               marginBottom: 16,
+              textAlign: 'center',
             }}>
               {error}
             </div>
@@ -157,16 +170,17 @@ export default function Login({ onLogin }) {
             disabled={loading || !name || !password}
             style={{
               width: '100%',
-              padding: '12px',
+              padding: '16px',
               background: loading ? 'rgba(74, 222, 128, 0.3)' : 'linear-gradient(135deg, #4ade80, #22c55e)',
               color: '#000',
               border: 'none',
-              borderRadius: 8,
-              fontSize: 15,
+              borderRadius: 12,
+              fontSize: 16,
               fontWeight: 600,
               cursor: loading ? 'wait' : 'pointer',
               transition: 'all 0.2s',
               opacity: (!name || !password) ? 0.5 : 1,
+              minHeight: 52,
             }}
           >
             {loading ? 'Lade...' : 'Eintreten 🚪'}

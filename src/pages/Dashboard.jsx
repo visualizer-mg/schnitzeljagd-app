@@ -6,7 +6,14 @@ import CheeseGame from '../components/CheeseGame';
 import HorseGame from '../components/HorseGame';
 
 // Puzzles per player — first chest = game
+// chained: true → needs password before chest can be opened
+// password: case-insensitive password to break the chain
 const PLAYER_PUZZLES = {
+  andreas: [
+    { id: 'andreas-1', label: 'Klavier / Indiana Jones', chained: true, password: 'indiana jones' },
+    { id: 'andreas-2', label: 'Die Schildkröte', chained: true, password: '' },
+    { id: 'andreas-3', label: 'Rätsel 3', chained: true, password: '' },
+  ],
   mark: [
     { id: 'mark-1', label: 'X-Wing Assault', game: 'xwing' },
     { id: 'mark-2', label: 'Rätsel 2' },
@@ -249,6 +256,8 @@ export default function Dashboard({ player, onLogout }) {
                       key={puzzle.id}
                       label={puzzle.label}
                       locked={isLocked}
+                      chained={puzzle.chained || false}
+                      password={puzzle.password || ''}
                       onOpen={() => handleChestOpen(puzzle.id, puzzle.game)}
                     />
                   );

@@ -828,13 +828,27 @@ export default function CheeseGame({ onWin, matrixClue }) {
                 fontFamily: fonts.mono, fontSize: 11, color: colors.green,
                 marginBottom: 6, letterSpacing: 2,
               }}>
-                ★ MATRIX CLUE ENTSCHLÜSSELT ★
+                ★ DEIN MATRIX-CODE ★
               </div>
               <div style={{
-                fontFamily: fonts.mono, fontSize: 28, color: colors.yellow,
-                fontWeight: 'bold', letterSpacing: 4,
+                fontFamily: fonts.mono, fontSize: 12, color: colors.textMuted,
+                marginBottom: 8,
               }}>
-                {matrixClue || 'ROQUEFORT'}
+                Trage diese Zahlen in Clue <span style={{ color: colors.orange, fontWeight: 'bold' }}>C1</span> der Matrix ein:
+              </div>
+              <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                {(matrixClue || '3 8 4 6 1 2').split(' ').map((d, i) => (
+                  <span key={i} style={{
+                    width: 36, height: 40,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 22, fontFamily: fonts.mono, fontWeight: 'bold',
+                    background: 'rgba(46, 160, 67, 0.15)',
+                    border: `2px solid ${colors.green}`,
+                    borderRadius: 6, color: colors.yellow,
+                  }}>
+                    {d}
+                  </span>
+                ))}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
@@ -851,7 +865,7 @@ export default function CheeseGame({ onWin, matrixClue }) {
               </button>
               {onWin && (
                 <button
-                  onClick={() => onWin(matrixClue || 'ROQUEFORT')}
+                  onClick={() => onWin(matrixClue || '3 8 4 6 1 2')}
                   style={{
                     fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
                     color: '#fff', background: colors.greenDark,

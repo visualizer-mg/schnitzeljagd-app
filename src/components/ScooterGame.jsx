@@ -294,43 +294,65 @@ export default function ScooterGame({ onWin, matrixClue }) {
   useEffect(() => {
     if (phase !== 'playing') return;
 
-    const touchStart = { x: 0, y: 0, time: 0 };
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const container = canvas.parentElement;
+
+    const touch = { x: 0, y: 0, time: 0, swiped: false };
 
     const handleTouchStart = (e) => {
-      e.preventDefault(); // prevent pull-to-refresh
+      e.preventDefault();
+      e.stopPropagation();
       const t = e.touches[0];
-      touchStart.x = t.clientX;
-      touchStart.y = t.clientY;
-      touchStart.time = Date.now();
+      touch.x = t.clientX;
+      touch.y = t.clientY;
+      touch.time = Date.now();
+      touch.swiped = false;
     };
 
-    const handleTouchEnd = (e) => {
-      const t = e.changedTouches[0];
-      const dx = t.clientX - touchStart.x;
-      const dy = t.clientY - touchStart.y;
-      const dt = Date.now() - touchStart.time;
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (touch.swiped) return;
+      const t = e.touches[0];
+      const dy = t.clientY - touch.y;
       const s = stateRef.current;
       if (!s) return;
 
-      // If it's a quick tap (not a swipe)
+      // Detect swipe during move (instant response, no waiting for touchend)
+      if (Math.abs(dy) > 25) {
+        if (dy < 0 && s.targetLane > 0) {
+          s.targetLane--;
+        } else if (dy > 0 && s.targetLane < LANE_COUNT - 1) {
+          s.targetLane++;
+        }
+        touch.swiped = true;
+        // Reset origin for next swipe without lifting finger
+        touch.y = t.clientY;
+        // Allow another swipe after cooldown
+        setTimeout(() => { touch.swiped = false; }, 200);
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (touch.swiped) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touch.x;
+      const dy = t.clientY - touch.y;
+      const dt = Date.now() - touch.time;
+      const s = stateRef.current;
+      if (!s) return;
+
+      // Quick tap = jump
       if (Math.abs(dx) < 20 && Math.abs(dy) < 20 && dt < 300) {
-        // Jump!
         if (!s.jumping) {
           s.jumping = true;
           s.jumpVel = JUMP_FORCE;
           const sfx = new Audio('/assets/scooter-jump.wav');
           sfx.volume = 0.6;
           sfx.play().catch(() => {});
-        }
-        return;
-      }
-
-      // Swipe detection
-      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 30) {
-        if (dy < 0 && s.targetLane > 0) {
-          s.targetLane--;
-        } else if (dy > 0 && s.targetLane < LANE_COUNT - 1) {
-          s.targetLane++;
         }
       }
     };
@@ -352,18 +374,16 @@ export default function ScooterGame({ onWin, matrixClue }) {
       }
     };
 
-    // Block all touch scrolling/pull-to-refresh during gameplay
-    const blockTouchMove = (e) => { e.preventDefault(); };
-
-    window.addEventListener('touchstart', handleTouchStart, { passive: false });
-    window.addEventListener('touchmove', blockTouchMove, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd, { passive: false });
+    // Attach touch events to container (not window) to avoid browser scroll interference
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', blockTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [phase]);
@@ -377,9 +397,20 @@ export default function ScooterGame({ onWin, matrixClue }) {
     const ctx = canvas.getContext('2d');
     const imgs = imagesRef.current;
 
-    const loop = () => {
+    let lastTime = performance.now();
+
+    const loop = (now) => {
       const s = stateRef.current;
       if (!s) return;
+
+      // Cap frame delta: if more than 50ms passed (browser paused rAF), skip the extra time
+      const delta = now - lastTime;
+      lastTime = now;
+      if (delta > 50) {
+        // Don't process this frame — just schedule next to avoid acceleration
+        animRef.current = requestAnimationFrame(loop);
+        return;
+      }
 
       s.frame++;
 

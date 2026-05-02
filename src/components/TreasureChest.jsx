@@ -240,7 +240,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
         // Play chain break sound
         try {
           if (!chainBreakAudioRef.current) {
-            chainBreakAudioRef.current = new Audio('/assets/chain-break.mp3');
+            chainBreakAudioRef.current = new Audio('/assets/chain-break.wav');
           }
           chainBreakAudioRef.current.currentTime = 0;
           chainBreakAudioRef.current.play().catch(() => {});
@@ -301,7 +301,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
     }
   };
 
-  const defaultTaunt = 'Ja hast du gedacht es geht so einfach??? Krame erst mal das korrekte Passwort raus...';
+  const defaultTaunt = 'Krame, so einfach isses net! Erstmal korrektes Passwort eingeben!';
   const displayTaunt = taunt || defaultTaunt;
 
   return (
@@ -460,7 +460,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
                   marginTop: 8,
                   animation: 'fadeSlideIn 0.2s ease',
                 }}>
-                  ❌ Falsches Passwort!
+                  ❌ Falsches Passwort du Depp
                 </div>
               )}
 

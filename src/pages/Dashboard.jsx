@@ -10,7 +10,7 @@ import HorseGame from '../components/HorseGame';
 // password: case-insensitive password to break the chain
 const PLAYER_PUZZLES = {
   andreas: [
-    { id: 'andreas-1', label: 'Klavier / Indiana Jones', chained: true, password: 'indiana jones', taunt: 'Ja hast du gedacht es geht so einfach??? Krame erst mal das korrekte Passwort raus...' },
+    { id: 'andreas-1', label: 'Klavier / Indiana Jones', chained: true, password: 'indiana jones', taunt: 'Krame, so einfach isses net! Erstmal korrektes Passwort eingeben!' },
     { id: 'andreas-2', label: 'Die Schildkröte', chained: true, password: '' },
     { id: 'andreas-3', label: 'Rätsel 3', chained: true, password: '' },
   ],

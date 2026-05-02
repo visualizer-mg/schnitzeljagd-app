@@ -192,6 +192,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
 
   const audioRef = useRef(null);
   const errorAudioRef = useRef(null);
+  const chainBreakAudioRef = useRef(null);
   const inputRef = useRef(null);
 
   // Focus input when popup appears
@@ -230,17 +231,30 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
     if (!password) return;
 
     if (pwInput.trim().toLowerCase() === password.trim().toLowerCase()) {
-      // Correct! Break the chain
+      // Correct! Close popup first, wait 1s, then break chain with sound
       setPwError(false);
       setShowPopup(false);
-      setChainState('breaking');
-      setShowChainBreak(true);
 
+      // Wait 1 second before chain breaks
       setTimeout(() => {
-        setChainState('unchained');
-        setShowChainBreak(false);
-        if (onUnchain) onUnchain();
-      }, 1200);
+        // Play chain break sound
+        try {
+          if (!chainBreakAudioRef.current) {
+            chainBreakAudioRef.current = new Audio('/assets/chain-break.mp3');
+          }
+          chainBreakAudioRef.current.currentTime = 0;
+          chainBreakAudioRef.current.play().catch(() => {});
+        } catch (e) {}
+
+        setChainState('breaking');
+        setShowChainBreak(true);
+
+        setTimeout(() => {
+          setChainState('unchained');
+          setShowChainBreak(false);
+          if (onUnchain) onUnchain();
+        }, 1200);
+      }, 1000);
     } else {
       // Wrong password
       setPwError(true);

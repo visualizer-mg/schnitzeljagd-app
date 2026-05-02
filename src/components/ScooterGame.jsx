@@ -260,90 +260,69 @@ export default function ScooterGame({ onWin, matrixClue }) {
     setPhase('playing');
   }, [initState]);
 
-  // ─── Lock body scroll during gameplay (no position:fixed — causes Android layout issues) ───
+  // ─── Touch / Keyboard controls (XWing-style: simple, on canvas, no body hacks) ───
   useEffect(() => {
     if (phase !== 'playing') return;
-    const body = document.body;
-    const prevOverflow = body.style.overflow;
-    body.style.overflow = 'hidden';
-    return () => { body.style.overflow = prevOverflow; };
-  }, [phase]);
-
-  // ─── Touch / Keyboard controls ───
-  useEffect(() => {
-    if (phase !== 'playing') return;
-
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const container = canvas.parentElement;
 
-    const touch = { x: 0, y: 0, time: 0, swiped: false };
+    // Track touch state
+    let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+    let lastSwipeY = 0, swipeCooldown = false;
 
-    const handleTouchStart = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    const onTouchStart = (e) => {
+      if (e.cancelable) e.preventDefault();
       const t = e.touches[0];
-      touch.x = t.clientX;
-      touch.y = t.clientY;
-      touch.time = Date.now();
-      touch.swiped = false;
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      lastSwipeY = t.clientY;
+      touchStartTime = Date.now();
+      swipeCooldown = false;
     };
 
-    const handleTouchMove = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (touch.swiped) return;
+    const onTouchMove = (e) => {
+      if (e.cancelable) e.preventDefault();
+      if (swipeCooldown) return;
       const t = e.touches[0];
-      const dy = t.clientY - touch.y;
+      const dy = t.clientY - lastSwipeY;
       const s = stateRef.current;
       if (!s) return;
 
-      // Detect swipe during move (instant response, no waiting for touchend)
-      if (Math.abs(dy) > 25) {
-        if (dy < 0 && s.targetLane > 0) {
-          s.targetLane--;
-        } else if (dy > 0 && s.targetLane < LANE_COUNT - 1) {
-          s.targetLane++;
-        }
-        touch.swiped = true;
-        // Reset origin for next swipe without lifting finger
-        touch.y = t.clientY;
-        // Allow another swipe after cooldown
-        setTimeout(() => { touch.swiped = false; }, 200);
+      // Swipe threshold during move — instant lane change
+      if (Math.abs(dy) > 30) {
+        if (dy < 0 && s.targetLane > 0) s.targetLane--;
+        else if (dy > 0 && s.targetLane < LANE_COUNT - 1) s.targetLane++;
+        lastSwipeY = t.clientY;
+        swipeCooldown = true;
+        setTimeout(() => { swipeCooldown = false; }, 200);
       }
     };
 
-    const handleTouchEnd = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (touch.swiped) return;
+    const onTouchEnd = (e) => {
+      if (e.cancelable) e.preventDefault();
       const t = e.changedTouches[0];
-      const dx = t.clientX - touch.x;
-      const dy = t.clientY - touch.y;
-      const dt = Date.now() - touch.time;
+      const dx = t.clientX - touchStartX;
+      const dy = t.clientY - touchStartY;
+      const dt = Date.now() - touchStartTime;
       const s = stateRef.current;
       if (!s) return;
 
-      // Quick tap = jump
-      if (Math.abs(dx) < 20 && Math.abs(dy) < 20 && dt < 300) {
-        if (!s.jumping) {
-          s.jumping = true;
-          s.jumpVel = JUMP_FORCE;
-          const sfx = new Audio('/assets/scooter-jump.wav');
-          sfx.volume = 0.6;
-          sfx.play().catch(() => {});
-        }
+      // Quick tap = jump (only if no swipe happened)
+      if (Math.abs(dx) < 20 && Math.abs(dy) < 20 && dt < 300 && !s.jumping) {
+        s.jumping = true;
+        s.jumpVel = JUMP_FORCE;
+        const sfx = new Audio('/assets/scooter-jump.wav');
+        sfx.volume = 0.6;
+        sfx.play().catch(() => {});
       }
     };
 
-    const handleKeyDown = (e) => {
+    const onKeyDown = (e) => {
       const s = stateRef.current;
       if (!s) return;
-      if (e.key === 'ArrowUp' && s.targetLane > 0) {
-        s.targetLane--;
-      } else if (e.key === 'ArrowDown' && s.targetLane < LANE_COUNT - 1) {
-        s.targetLane++;
-      } else if (e.key === ' ' && !s.jumping) {
+      if (e.key === 'ArrowUp' && s.targetLane > 0) s.targetLane--;
+      else if (e.key === 'ArrowDown' && s.targetLane < LANE_COUNT - 1) s.targetLane++;
+      else if (e.key === ' ' && !s.jumping) {
         s.jumping = true;
         s.jumpVel = JUMP_FORCE;
         const sfx = new Audio('/assets/scooter-jump.wav');
@@ -353,17 +332,17 @@ export default function ScooterGame({ onWin, matrixClue }) {
       }
     };
 
-    // Attach touch events directly to canvas (fires before Dashboard container block)
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-    window.addEventListener('keydown', handleKeyDown);
+    // All touch events on canvas only, passive: false — same pattern as XWingGame
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+    window.addEventListener('keydown', onKeyDown);
 
     return () => {
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
-      window.removeEventListener('keydown', handleKeyDown);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('keydown', onKeyDown);
     };
   }, [phase]);
 
@@ -376,22 +355,9 @@ export default function ScooterGame({ onWin, matrixClue }) {
     const ctx = canvas.getContext('2d');
     const imgs = imagesRef.current;
 
-    let lastTime = 0;
-
-    const loop = (now) => {
+    const loop = () => {
       const s = stateRef.current;
       if (!s) return;
-
-      // Cap frame delta: skip frames after browser pauses (scroll, tab switch, etc.)
-      if (lastTime > 0) {
-        const delta = now - lastTime;
-        if (delta > 50 || delta < 0) {
-          lastTime = now;
-          animRef.current = requestAnimationFrame(loop);
-          return;
-        }
-      }
-      lastTime = now;
 
       s.frame++;
 

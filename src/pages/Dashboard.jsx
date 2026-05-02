@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import TreasureChest from '../components/TreasureChest';
 import XWingGame from '../components/XWingGame';
@@ -81,42 +81,16 @@ export default function Dashboard({ player, onLogout }) {
   const solvedCount = progress.filter(p => p.status === 'solved').length;
   const puzzles = PLAYER_PUZZLES[player.name] || null;
 
-  // ─── Native touch block for game container ───
-  const gameContainerRef = useRef(null);
-  useEffect(() => {
-    if (!activeGame) return;
-    const el = gameContainerRef.current;
-    if (!el) return;
-    const block = (e) => { e.preventDefault(); };
-    el.addEventListener('touchmove', block, { passive: false });
-    // Also block on document to catch any bubbling
-    document.addEventListener('touchmove', block, { passive: false });
-    document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.touchAction = 'none';
-    document.documentElement.style.overscrollBehavior = 'none';
-    return () => {
-      el.removeEventListener('touchmove', block);
-      document.removeEventListener('touchmove', block);
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.touchAction = '';
-      document.documentElement.style.overscrollBehavior = '';
-    };
-  }, [activeGame]);
-
   // ─── Fullscreen Game Mode ───
   if (activeGame) {
     return (
-      <div
-        ref={gameContainerRef}
-        style={{
+      <div style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
         background: '#000',
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
-        touchAction: 'none',
-        overscrollBehavior: 'none',
         overflow: 'hidden',
       }}>
         {/* Back button */}
@@ -139,7 +113,7 @@ export default function Dashboard({ player, onLogout }) {
         >
           ← Zurück
         </button>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflow: 'auto' }}>
           {activeGame === 'xwing' && (
             <XWingGame matrixClue="KRAFT" onWin={handleGameWin} />
           )}

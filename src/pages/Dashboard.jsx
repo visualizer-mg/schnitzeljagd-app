@@ -84,13 +84,18 @@ export default function Dashboard({ player, onLogout }) {
   // ─── Fullscreen Game Mode ───
   if (activeGame) {
     return (
-      <div style={{
+      <div
+        onTouchMove={e => e.preventDefault()}
+        style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
         background: '#000',
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
+        overscrollBehavior: 'none',
+        touchAction: 'none',
+        overflow: 'hidden',
       }}>
         {/* Back button */}
         <button

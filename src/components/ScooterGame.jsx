@@ -267,6 +267,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
     const touchStart = { x: 0, y: 0, time: 0 };
 
     const handleTouchStart = (e) => {
+      e.preventDefault(); // prevent pull-to-refresh
       const t = e.touches[0];
       touchStart.x = t.clientX;
       touchStart.y = t.clientY;
@@ -321,12 +322,17 @@ export default function ScooterGame({ onWin, matrixClue }) {
       }
     };
 
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    // Block all touch scrolling/pull-to-refresh during gameplay
+    const blockTouchMove = (e) => { e.preventDefault(); };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: false });
+    window.addEventListener('touchmove', blockTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', blockTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('keydown', handleKeyDown);
     };

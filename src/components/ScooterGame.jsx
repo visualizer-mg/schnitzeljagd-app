@@ -260,34 +260,13 @@ export default function ScooterGame({ onWin, matrixClue }) {
     setPhase('playing');
   }, [initState]);
 
-  // ─── Lock body scroll during gameplay ───
+  // ─── Lock body scroll during gameplay (no position:fixed — causes Android layout issues) ───
   useEffect(() => {
     if (phase !== 'playing') return;
-    const html = document.documentElement;
     const body = document.body;
-    const prev = {
-      htmlOverflow: html.style.overflow,
-      bodyOverflow: body.style.overflow,
-      bodyPosition: body.style.position,
-      bodyTouchAction: body.style.touchAction,
-      htmlOverscroll: html.style.overscrollBehavior,
-    };
-    html.style.overflow = 'hidden';
+    const prevOverflow = body.style.overflow;
     body.style.overflow = 'hidden';
-    body.style.position = 'fixed';
-    body.style.touchAction = 'none';
-    html.style.overscrollBehavior = 'none';
-    body.style.width = '100%';
-    body.style.height = '100%';
-    return () => {
-      html.style.overflow = prev.htmlOverflow;
-      body.style.overflow = prev.bodyOverflow;
-      body.style.position = prev.bodyPosition;
-      body.style.touchAction = prev.bodyTouchAction;
-      html.style.overscrollBehavior = prev.htmlOverscroll;
-      body.style.width = '';
-      body.style.height = '';
-    };
+    return () => { body.style.overflow = prevOverflow; };
   }, [phase]);
 
   // ─── Touch / Keyboard controls ───
@@ -374,16 +353,16 @@ export default function ScooterGame({ onWin, matrixClue }) {
       }
     };
 
-    // Attach touch events to container (not window) to avoid browser scroll interference
-    container.addEventListener('touchstart', handleTouchStart, { passive: false });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd, { passive: false });
+    // Attach touch events directly to canvas (fires before Dashboard container block)
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [phase]);
@@ -397,20 +376,22 @@ export default function ScooterGame({ onWin, matrixClue }) {
     const ctx = canvas.getContext('2d');
     const imgs = imagesRef.current;
 
-    let lastTime = performance.now();
+    let lastTime = 0;
 
     const loop = (now) => {
       const s = stateRef.current;
       if (!s) return;
 
-      // Cap frame delta: if more than 50ms passed (browser paused rAF), skip the extra time
-      const delta = now - lastTime;
-      lastTime = now;
-      if (delta > 50) {
-        // Don't process this frame — just schedule next to avoid acceleration
-        animRef.current = requestAnimationFrame(loop);
-        return;
+      // Cap frame delta: skip frames after browser pauses (scroll, tab switch, etc.)
+      if (lastTime > 0) {
+        const delta = now - lastTime;
+        if (delta > 50 || delta < 0) {
+          lastTime = now;
+          animRef.current = requestAnimationFrame(loop);
+          return;
+        }
       }
+      lastTime = now;
 
       s.frame++;
 

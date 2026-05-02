@@ -4,6 +4,7 @@ import TreasureChest from '../components/TreasureChest';
 import XWingGame from '../components/XWingGame';
 import CheeseGame from '../components/CheeseGame';
 import HorseGame from '../components/HorseGame';
+import ScooterGame from '../components/ScooterGame';
 
 // Puzzles per player — first chest = game
 // chained: true → needs password before chest can be opened
@@ -11,7 +12,7 @@ import HorseGame from '../components/HorseGame';
 const PLAYER_PUZZLES = {
   andreas: [
     { id: 'andreas-1', label: 'Klavier / Indiana Jones', chained: true, password: 'indiana jones', taunt: 'Krame, so einfach isses net! Erstmal korrektes Passwort eingeben!' },
-    { id: 'andreas-2', label: 'Die Schildkröte', chained: true, password: '' },
+    { id: 'andreas-2', label: 'Elephant Scooter Run', chained: true, password: 'wohnwagen', taunt: 'Erstmal das richtige Passwort eingeben, Krame!', game: 'scooter' },
     { id: 'andreas-3', label: 'Rätsel 3', chained: true, password: '' },
   ],
   mark: [
@@ -120,6 +121,9 @@ export default function Dashboard({ player, onLogout }) {
           )}
           {activeGame === 'horse' && (
             <HorseGame matrixClue="FREIHEIT" onWin={handleGameWin} />
+          )}
+          {activeGame === 'scooter' && (
+            <ScooterGame matrixClue="? ? ?" onWin={handleGameWin} />
           )}
         </div>
       </div>

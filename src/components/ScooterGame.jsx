@@ -260,6 +260,36 @@ export default function ScooterGame({ onWin, matrixClue }) {
     setPhase('playing');
   }, [initState]);
 
+  // ─── Lock body scroll during gameplay ───
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      bodyPosition: body.style.position,
+      bodyTouchAction: body.style.touchAction,
+      htmlOverscroll: html.style.overscrollBehavior,
+    };
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.touchAction = 'none';
+    html.style.overscrollBehavior = 'none';
+    body.style.width = '100%';
+    body.style.height = '100%';
+    return () => {
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      body.style.position = prev.bodyPosition;
+      body.style.touchAction = prev.bodyTouchAction;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+      body.style.width = '';
+      body.style.height = '';
+    };
+  }, [phase]);
+
   // ─── Touch / Keyboard controls ───
   useEffect(() => {
     if (phase !== 'playing') return;

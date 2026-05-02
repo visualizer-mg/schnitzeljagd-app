@@ -117,7 +117,7 @@ export default function Dashboard({ player, onLogout }) {
         >
           ← Zurück
         </button>
-        <div style={{ flex: 1, overflow: 'auto' }}>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
           {activeGame === 'xwing' && (
             <XWingGame matrixClue="KRAFT" onWin={handleGameWin} />
           )}

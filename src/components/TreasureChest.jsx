@@ -177,13 +177,13 @@ function ChainBreakExplosion({ active }) {
 //   4. Correct password → chain explodes → chest unlockable
 //   5. Click chest → shake → open with dual sparkles
 //
-export default function TreasureChest({ label, locked, chained, password, taunt, onOpen, onUnchain, solved, game, onReplay }) {
-  const [opened, setOpened] = useState(solved || false);
+export default function TreasureChest({ label, locked, chained, password, taunt, onOpen, onUnchain, alreadyOpened, solved, game, onReplay }) {
+  const [opened, setOpened] = useState(alreadyOpened || solved || false);
   const [animating, setAnimating] = useState(false);
   const [showSparkles, setShowSparkles] = useState(false);
 
   // Chain states
-  const [chainState, setChainState] = useState((chained && !solved) ? 'chained' : 'unchained');
+  const [chainState, setChainState] = useState((chained && !alreadyOpened && !solved) ? 'chained' : 'unchained');
   const [chainShaking, setChainShaking] = useState(false);
   const [showChainBreak, setShowChainBreak] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
@@ -194,6 +194,14 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
   const errorAudioRef = useRef(null);
   const chainBreakAudioRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Sync opened state when props change (e.g. after async loadData)
+  useEffect(() => {
+    if (alreadyOpened || solved) {
+      setOpened(true);
+      setChainState('unchained');
+    }
+  }, [alreadyOpened, solved]);
 
   // Focus input when popup appears
   useEffect(() => {

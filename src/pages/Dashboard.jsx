@@ -44,15 +44,21 @@ export default function Dashboard({ player, onLogout }) {
       supabase.from('progress').select('*').eq('player_id', player.id),
       supabase.from('matrix_clues').select('*').eq('player_id', player.id),
     ]);
-    setProgress(progressRes.data || []);
+    if (progressRes.error) console.error('❌ Load progress failed:', progressRes.error);
+    if (cluesRes.error) console.error('❌ Load clues failed:', cluesRes.error);
+
+    const progressData = progressRes.data || [];
+    setProgress(progressData);
     setClues(cluesRes.data || []);
+    console.log('📦 Loaded progress:', progressData);
 
     // Mark already-opened puzzles (unlocked or solved) as opened
     const opened = new Set();
-    (progressRes.data || []).forEach(p => {
+    progressData.forEach(p => {
       if (p.status === 'unlocked' || p.status === 'solved') opened.add(p.puzzle_id);
     });
     setOpenedChests(opened);
+    console.log('🔓 Opened chests:', [...opened]);
     setLoading(false);
   };
 
@@ -61,11 +67,13 @@ export default function Dashboard({ player, onLogout }) {
 
     // Save progress to Supabase — mark as unlocked (or solved if no game)
     const status = game ? 'unlocked' : 'solved';
-    await supabase.from('progress').upsert({
+    const { error } = await supabase.from('progress').upsert({
       player_id: player.id,
       puzzle_id: puzzleId,
       status,
     }, { onConflict: 'player_id,puzzle_id' });
+    if (error) console.error('❌ Progress upsert failed:', error);
+    else console.log('✅ Progress saved:', puzzleId, status);
 
     // Log the event
     await supabase.from('event_log').insert({
@@ -86,12 +94,13 @@ export default function Dashboard({ player, onLogout }) {
   const handleGameWin = async (puzzleId) => {
     // Mark the puzzle as solved in Supabase
     if (puzzleId) {
-      await supabase.from('progress').upsert({
+      const { error } = await supabase.from('progress').upsert({
         player_id: player.id,
         puzzle_id: puzzleId,
         status: 'solved',
-        updated_at: new Date().toISOString(),
       }, { onConflict: 'player_id,puzzle_id' });
+      if (error) console.error('❌ Game win upsert failed:', error);
+      else console.log('✅ Game solved:', puzzleId);
     }
 
     setActiveGame(null);
@@ -287,6 +296,7 @@ export default function Dashboard({ player, onLogout }) {
                       chained={alreadyOpened ? false : (puzzle.chained || false)}
                       password={puzzle.password || ''}
                       taunt={puzzle.taunt || ''}
+                      alreadyOpened={alreadyOpened}
                       solved={isSolved}
                       game={puzzle.game}
                       onOpen={() => handleChestOpen(puzzle.id, puzzle.game)}

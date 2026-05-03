@@ -348,11 +348,13 @@ export default function HorseGame({ onWin, matrixClue }) {
       if (e.key === 'ArrowRight' || e.key === 'd') g.keys.right = false;
     };
     const onTouchMove = (e) => {
+      if (e.cancelable) e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const scaleX = CANVAS_W / rect.width;
       g.touchX = (e.touches[0].clientX - rect.left) * scaleX;
     };
     const onTouchStart = (e) => {
+      if (e.cancelable) e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const scaleX = CANVAS_W / rect.width;
       g.touchX = (e.touches[0].clientX - rect.left) * scaleX;
@@ -366,8 +368,8 @@ export default function HorseGame({ onWin, matrixClue }) {
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
-    canvas.addEventListener('touchmove', onTouchMove, { passive: true });
-    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
     canvas.addEventListener('touchend', onTouchEnd);
     canvas.addEventListener('mousemove', onMouseMove);
 
@@ -624,6 +626,7 @@ export default function HorseGame({ onWin, matrixClue }) {
             display: 'block', width: '100%', height: 'auto',
             border: `1px solid ${colors.border}`, borderRadius: 8,
             cursor: gameState === 'playing' ? 'none' : 'default',
+            touchAction: 'none',
           }}
         />
 

@@ -261,41 +261,61 @@ export default function ScooterGame({ onWin, matrixClue }) {
   }, [initState]);
 
   // ─── Touch / Keyboard controls ───
-  // Touch: exactly like XWing — only touchmove + touchstart on canvas, NO touchend
-  // Left half of canvas: finger Y position controls lane (top=0, mid=1, bottom=2)
-  // Right half of canvas: touch = jump
+  // Swipe up/down = lane change, Tap = jump
+  // passive: false + preventDefault = no browser scroll (proven with HorseGame fix)
   useEffect(() => {
     if (phase !== 'playing') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let lastJumpTime = 0;
+    let startX = 0, startY = 0, startTime = 0, swiped = false;
 
-    const onTouch = (e) => {
+    const onTouchStart = (e) => {
       if (e.cancelable) e.preventDefault();
       const t = e.touches[0];
-      const rect = canvas.getBoundingClientRect();
-      const relX = (t.clientX - rect.left) / rect.width;  // 0-1
-      const relY = (t.clientY - rect.top) / rect.height;  // 0-1
+      startX = t.clientX;
+      startY = t.clientY;
+      startTime = Date.now();
+      swiped = false;
+    };
+
+    const onTouchMove = (e) => {
+      if (e.cancelable) e.preventDefault();
+      if (swiped) return;
+      const t = e.touches[0];
+      const dy = t.clientY - startY;
       const s = stateRef.current;
       if (!s) return;
 
-      if (relX < 0.6) {
-        // Left 60% — lane selection by finger Y position
-        if (relY < 0.33) s.targetLane = 0;
-        else if (relY < 0.66) s.targetLane = 1;
-        else s.targetLane = 2;
-      } else {
-        // Right 40% — jump (with cooldown to prevent repeat)
-        const now = Date.now();
-        if (!s.jumping && now - lastJumpTime > 300) {
-          s.jumping = true;
-          s.jumpVel = JUMP_FORCE;
-          lastJumpTime = now;
-          const sfx = new Audio('/assets/scooter-jump.wav');
-          sfx.volume = 0.6;
-          sfx.play().catch(() => {});
-        }
+      // Swipe threshold — change lane immediately
+      if (Math.abs(dy) > 30) {
+        if (dy < 0 && s.targetLane > 0) s.targetLane--;
+        else if (dy > 0 && s.targetLane < LANE_COUNT - 1) s.targetLane++;
+        swiped = true;
+        // Reset for next swipe (finger still on screen)
+        startY = t.clientY;
+        setTimeout(() => { swiped = false; }, 200);
+      }
+    };
+
+    // Tap detection — only if no swipe happened
+    const onTouchEnd = (e) => {
+      if (e.cancelable) e.preventDefault();
+      if (swiped) return;
+      const t = e.changedTouches[0];
+      const dx = Math.abs(t.clientX - startX);
+      const dy = Math.abs(t.clientY - startY);
+      const dt = Date.now() - startTime;
+      const s = stateRef.current;
+      if (!s) return;
+
+      // Quick tap = jump
+      if (dx < 20 && dy < 20 && dt < 300 && !s.jumping) {
+        s.jumping = true;
+        s.jumpVel = JUMP_FORCE;
+        const sfx = new Audio('/assets/scooter-jump.wav');
+        sfx.volume = 0.6;
+        sfx.play().catch(() => {});
       }
     };
 
@@ -314,14 +334,15 @@ export default function ScooterGame({ onWin, matrixClue }) {
       }
     };
 
-    // Same pattern as XWingGame: only touchmove + touchstart, NO touchend
-    canvas.addEventListener('touchstart', onTouch, { passive: false });
-    canvas.addEventListener('touchmove', onTouch, { passive: false });
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd, { passive: false });
     window.addEventListener('keydown', onKeyDown);
 
     return () => {
-      canvas.removeEventListener('touchstart', onTouch);
-      canvas.removeEventListener('touchmove', onTouch);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [phase]);
@@ -751,7 +772,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
           textAlign: 'center', maxWidth: 300, marginBottom: 24, lineHeight: 1.6,
         }}>
           Weiche Autos, Schlaglöchern und Absperrungen aus!<br />
-          Links: Finger hoch/runter = Spur · Rechts: Tippen = Springen<br />
+          ↕ Wischen = Spur wechseln · Tippen = Springen<br />
           <span style={{ color: colors.accent, fontWeight: 'bold' }}>
             Schaffe {TARGET_KM} km um Geheimcode freizuschalten!
           </span><br />

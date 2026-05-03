@@ -358,9 +358,18 @@ export default function ScooterGame({ onWin, matrixClue }) {
     const ctx = canvas.getContext('2d');
     const imgs = imagesRef.current;
 
-    const loop = () => {
+    let lastTs = 0;
+
+    const loop = (timestamp) => {
       const s = stateRef.current;
       if (!s) return;
+
+      // ── Delta-time: normalize to 60fps so game speed is constant ──
+      if (!lastTs) lastTs = timestamp;
+      const rawDt = timestamp - lastTs;
+      lastTs = timestamp;
+      // Clamp delta to avoid huge jumps (e.g. tab switch, throttle)
+      const dt = Math.min(rawDt, 33.3) / 16.667; // 1.0 at 60fps, 0.5 at 120fps, etc.
 
       s.frame++;
 
@@ -369,21 +378,21 @@ export default function ScooterGame({ onWin, matrixClue }) {
       s.speed = Math.min(BASE_SPEED + km * 0.02, MAX_SPEED);
       s.spawnInterval = Math.max(80 - km * 0.35, 22);
 
-      // ── Distance ──
-      s.distance += s.speed * PIXELS_PER_METER * 10;
+      // ── Distance (dt-scaled) ──
+      s.distance += s.speed * PIXELS_PER_METER * 10 * dt;
 
-      // ── Background scroll ──
-      s.bgScroll += s.speed * 0.5;
+      // ── Background scroll (dt-scaled) ──
+      s.bgScroll += s.speed * 0.5 * dt;
 
-      // ── Lane movement (smooth) ──
+      // ── Lane movement (smooth, dt-scaled) ──
       const targetY = LANE_Y[s.targetLane];
-      s.laneY += (targetY - s.laneY) * 0.15;
+      s.laneY += (targetY - s.laneY) * (1 - Math.pow(0.85, dt));
       s.lane = s.targetLane;
 
-      // ── Jumping ──
+      // ── Jumping (dt-scaled) ──
       if (s.jumping) {
-        s.jumpOffsetY += s.jumpVel;
-        s.jumpVel += GRAVITY;
+        s.jumpOffsetY += s.jumpVel * dt;
+        s.jumpVel += GRAVITY * dt;
         if (s.jumpOffsetY >= 0) {
           s.jumpOffsetY = 0;
           s.jumping = false;
@@ -470,15 +479,15 @@ export default function ScooterGame({ onWin, matrixClue }) {
         s.lastLifeDrop = Math.floor(km / LIFE_DROP_INTERVAL) * LIFE_DROP_INTERVAL;
       }
 
-      // ── Move obstacles ──
+      // ── Move obstacles (dt-scaled) ──
       s.obstacles.forEach(o => {
         const isVehicle = o.type.startsWith('auto');
-        o.x -= s.speed * (isVehicle ? 2.28 : 1.8);
+        o.x -= s.speed * (isVehicle ? 2.28 : 1.8) * dt;
       });
       s.obstacles = s.obstacles.filter(o => o.x + o.w > -20);
 
-      // ── Move & collect pickups ──
-      s.pickups.forEach(p => { p.x -= s.speed * 1.44; });
+      // ── Move & collect pickups (dt-scaled) ──
+      s.pickups.forEach(p => { p.x -= s.speed * 1.44 * dt; });
       const elephYForPickup = s.laneY + s.jumpOffsetY;
       s.pickups = s.pickups.filter(p => {
         // Check if elephant collects it
@@ -496,7 +505,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
 
       // ── Collision detection ──
       if (s.invincible > 0) {
-        s.invincible--;
+        s.invincible -= dt;
       } else {
         const elephY = s.laneY + s.jumpOffsetY;
         const elephRect = {
@@ -563,7 +572,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
         const sy = (Math.random() - 0.5) * 6;
         ctx.save();
         ctx.translate(sx, sy);
-        s.shakeFrames--;
+        s.shakeFrames -= dt;
       }
 
       // ── Background with fade transitions ──

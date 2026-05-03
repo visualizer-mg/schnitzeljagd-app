@@ -754,9 +754,11 @@ export default function ScooterGame({ onWin, matrixClue }) {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', minHeight: 400,
+        justifyContent: 'center',
         background: colors.bgPrimary, padding: 20,
-        overflow: 'hidden', position: 'relative',
+        overflow: 'hidden',
+        width: '100vw', height: '100vh',
+        position: 'fixed', top: 0, left: 0, zIndex: 100,
       }}>
         <style>{`
           @keyframes wohnwagen-drive {
@@ -837,8 +839,10 @@ export default function ScooterGame({ onWin, matrixClue }) {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', minHeight: 400,
+        justifyContent: 'center',
         background: colors.bgPrimary, padding: 20,
+        width: '100vw', height: '100vh',
+        position: 'fixed', top: 0, left: 0, zIndex: 100,
       }}>
         <div style={{
           fontSize: 48, marginBottom: 12,
@@ -874,8 +878,10 @@ export default function ScooterGame({ onWin, matrixClue }) {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', minHeight: 400,
+        justifyContent: 'center',
         background: colors.bgPrimary, padding: 20,
+        width: '100vw', height: '100vh',
+        position: 'fixed', top: 0, left: 0, zIndex: 100,
       }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
         <div style={{
@@ -944,11 +950,14 @@ export default function ScooterGame({ onWin, matrixClue }) {
     );
   }
 
-  // ─── Playing state — show canvas ───
+  // ─── Playing state — show canvas (fullscreen, centered) ───
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center',
       background: '#000', padding: 0,
+      width: '100vw', height: '100vh',
+      position: 'fixed', top: 0, left: 0, zIndex: 100,
     }}>
       <canvas
         ref={canvasRef}
@@ -956,6 +965,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
         height={CANVAS_H}
         style={{
           width: '100%',
+          maxWidth: CANVAS_W,
           height: 'auto',
           imageRendering: 'auto',
           touchAction: 'none',
@@ -965,8 +975,8 @@ export default function ScooterGame({ onWin, matrixClue }) {
         display: 'flex', gap: 20, padding: '10px 0',
         fontFamily: fonts.mono, fontSize: 10, color: colors.textSubtle,
       }}>
-        <span>◀ Links = Spur wählen</span>
-        <span>Rechts ▶ = Springen</span>
+        <span>↕ Wischen = Spur wechseln</span>
+        <span>Tippen = Springen</span>
       </div>
     </div>
   );

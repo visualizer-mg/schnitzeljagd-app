@@ -25,13 +25,12 @@ const fonts = {
 // ═══════════════════════════════════════════════════════
 
 const CANVAS_W = 480;
-const CANVAS_H = 500;
+const CANVAS_H = 520;
 
-// Lanes — road at bottom of canvas
-// LANE_Y = where the bottom of the elephant/obstacle sits (road surface for that lane)
+// Lanes — road at bottom of canvas (+15% height)
 const ROAD_TOP = 370;
-const ROAD_BOTTOM = 500;
-const LANE_H = (ROAD_BOTTOM - ROAD_TOP) / 3; // ~42px per lane
+const ROAD_BOTTOM = 520;
+const LANE_H = (ROAD_BOTTOM - ROAD_TOP) / 3; // ~50px per lane
 const LANE_Y = [
   ROAD_TOP + LANE_H * 0.5,   // top lane — center line
   ROAD_TOP + LANE_H * 1.5,   // mid lane — center line
@@ -39,12 +38,12 @@ const LANE_Y = [
 ];
 const LANE_COUNT = 3;
 
-// Elephant
-const ELEPH_W = 70;
-const ELEPH_H = 65;
+// Elephant (+15%)
+const ELEPH_W = 80;
+const ELEPH_H = 75;
 const ELEPH_X = 60; // fixed X position
-const JUMP_FORCE = -8;
-const GRAVITY = 0.35;
+const JUMP_FORCE = -9.2;
+const GRAVITY = 0.4;
 const JUMP_DURATION = 45; // frames
 
 // Game
@@ -55,16 +54,16 @@ const MAX_SPEED = 6;
 const LIFE_MILESTONES = [50, 100, 125]; // km at which you get a free life
 const MAX_LIVES = 3;
 
-// Obstacles — vehicles use sprite images (auto1-4.webp)
+// Obstacles — all sizes +15%
 const OBS_TYPES = [
-  { type: 'auto1',      w: 74, h: 35, canJump: true,  img: 'auto1' },  // school bus
-  { type: 'auto2',      w: 66, h: 36, canJump: true,  img: 'auto2' },  // blue van
-  { type: 'auto3',      w: 92, h: 28, canJump: true,  img: 'auto3' },  // sports car
-  { type: 'auto4',      w: 75, h: 32, canJump: true,  img: 'auto4' },  // compact
-  { type: 'auto5',      w: 225, h: 54, canJump: false, img: 'auto5', hitH: 36 }, // SUV mit Anhänger (visual oversize, hitbox = 1 lane)
-  { type: 'pothole',    w: 40, h: 12, canJump: true },
-  { type: 'barrier',    w: 45, h: 38, canJump: true, img: 'barrier' },
-  { type: 'cone',       w: 20, h: 28, canJump: true },
+  { type: 'auto1',      w: 85,  h: 40, canJump: true,  img: 'auto1' },
+  { type: 'auto2',      w: 76,  h: 41, canJump: true,  img: 'auto2' },
+  { type: 'auto3',      w: 106, h: 32, canJump: true,  img: 'auto3' },
+  { type: 'auto4',      w: 86,  h: 37, canJump: true,  img: 'auto4' },
+  { type: 'auto5',      w: 259, h: 62, canJump: false, img: 'auto5', hitH: 41 },
+  { type: 'pothole',    w: 46,  h: 14, canJump: true },
+  { type: 'barrier',    w: 52,  h: 44, canJump: true, img: 'barrier' },
+  { type: 'cone',       w: 23,  h: 32, canJump: true },
 ];
 
 // ─── Draw obstacle sprites ───

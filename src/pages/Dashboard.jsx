@@ -33,7 +33,7 @@ export default function Dashboard({ player, onLogout }) {
   const [clues, setClues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openedChests, setOpenedChests] = useState(new Set());
-  const [activeGame, setActiveGame] = useState(null);
+  const [activeGame, setActiveGame] = useState(null); // { game: 'xwing', puzzleId: 'mark-1' } or null
 
   useEffect(() => {
     loadData();
@@ -47,17 +47,25 @@ export default function Dashboard({ player, onLogout }) {
     setProgress(progressRes.data || []);
     setClues(cluesRes.data || []);
 
-    // Mark already-solved puzzles as opened
-    const solved = new Set();
+    // Mark already-opened puzzles (unlocked or solved) as opened
+    const opened = new Set();
     (progressRes.data || []).forEach(p => {
-      if (p.status === 'solved') solved.add(p.puzzle_id);
+      if (p.status === 'unlocked' || p.status === 'solved') opened.add(p.puzzle_id);
     });
-    setOpenedChests(solved);
+    setOpenedChests(opened);
     setLoading(false);
   };
 
   const handleChestOpen = async (puzzleId, game) => {
     setOpenedChests(prev => new Set([...prev, puzzleId]));
+
+    // Save progress to Supabase — mark as unlocked (or solved if no game)
+    const status = game ? 'unlocked' : 'solved';
+    await supabase.from('progress').upsert({
+      player_id: player.id,
+      puzzle_id: puzzleId,
+      status,
+    }, { onConflict: 'player_id,puzzle_id' });
 
     // Log the event
     await supabase.from('event_log').insert({
@@ -66,16 +74,29 @@ export default function Dashboard({ player, onLogout }) {
       event_data: { puzzle_id: puzzleId },
     });
 
+    // Reload progress
+    await loadData();
+
     // If this chest has a game, launch it after a short delay
     if (game) {
-      setTimeout(() => setActiveGame(game), 1500);
+      setTimeout(() => setActiveGame({ game, puzzleId }), 1500);
     }
   };
 
-  const handleGameWin = () => {
+  const handleGameWin = async (puzzleId) => {
+    // Mark the puzzle as solved in Supabase
+    if (puzzleId) {
+      await supabase.from('progress').upsert({
+        player_id: player.id,
+        puzzle_id: puzzleId,
+        status: 'solved',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'player_id,puzzle_id' });
+    }
+
     setActiveGame(null);
-    // Reload data in case progress was updated
-    loadData();
+    // Reload data
+    await loadData();
   };
 
   const solvedCount = progress.filter(p => p.status === 'solved').length;
@@ -114,17 +135,17 @@ export default function Dashboard({ player, onLogout }) {
           ← Zurück
         </button>
         <div style={{ flex: 1, overflow: 'auto' }}>
-          {activeGame === 'xwing' && (
-            <XWingGame matrixClue="KRAFT" onWin={handleGameWin} />
+          {activeGame.game === 'xwing' && (
+            <XWingGame matrixClue="KRAFT" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
-          {activeGame === 'cheese' && (
-            <CheeseGame matrixClue="KÄSE" onWin={handleGameWin} />
+          {activeGame.game === 'cheese' && (
+            <CheeseGame matrixClue="KÄSE" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
-          {activeGame === 'horse' && (
-            <HorseGame matrixClue="FREIHEIT" onWin={handleGameWin} />
+          {activeGame.game === 'horse' && (
+            <HorseGame matrixClue="FREIHEIT" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
-          {activeGame === 'scooter' && (
-            <ScooterGame matrixClue="? ? ?" onWin={handleGameWin} />
+          {activeGame.game === 'scooter' && (
+            <ScooterGame matrixClue="? ? ?" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
         </div>
       </div>
@@ -255,16 +276,21 @@ export default function Dashboard({ player, onLogout }) {
                   const prog = progress.find(p => p.puzzle_id === puzzle.id);
                   const isLocked = prog ? prog.status === 'locked' : false;
                   const isSolved = prog ? prog.status === 'solved' : false;
+                  const isUnlocked = prog ? prog.status === 'unlocked' : false;
+                  const alreadyOpened = openedChests.has(puzzle.id);
 
                   return (
                     <TreasureChest
                       key={puzzle.id}
                       label={puzzle.label}
                       locked={isLocked}
-                      chained={puzzle.chained || false}
+                      chained={alreadyOpened ? false : (puzzle.chained || false)}
                       password={puzzle.password || ''}
                       taunt={puzzle.taunt || ''}
+                      solved={isSolved}
+                      game={puzzle.game}
                       onOpen={() => handleChestOpen(puzzle.id, puzzle.game)}
+                      onReplay={puzzle.game ? () => setActiveGame({ game: puzzle.game, puzzleId: puzzle.id }) : null}
                     />
                   );
                 })}

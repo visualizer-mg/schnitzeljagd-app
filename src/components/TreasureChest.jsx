@@ -177,13 +177,13 @@ function ChainBreakExplosion({ active }) {
 //   4. Correct password → chain explodes → chest unlockable
 //   5. Click chest → shake → open with dual sparkles
 //
-export default function TreasureChest({ label, locked, chained, password, taunt, onOpen, onUnchain }) {
-  const [opened, setOpened] = useState(false);
+export default function TreasureChest({ label, locked, chained, password, taunt, onOpen, onUnchain, solved, game, onReplay }) {
+  const [opened, setOpened] = useState(solved || false);
   const [animating, setAnimating] = useState(false);
   const [showSparkles, setShowSparkles] = useState(false);
 
   // Chain states
-  const [chainState, setChainState] = useState(chained ? 'chained' : 'unchained');
+  const [chainState, setChainState] = useState((chained && !solved) ? 'chained' : 'unchained');
   const [chainShaking, setChainShaking] = useState(false);
   const [showChainBreak, setShowChainBreak] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
@@ -513,6 +513,25 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
       }}>
         {locked ? '🔒 ' : opened ? '✅ ' : chainState === 'chained' ? '⛓️ ' : ''}{label}
       </div>
+
+      {/* Replay button for opened game chests */}
+      {opened && game && onReplay && (
+        <button
+          onClick={onReplay}
+          style={{
+            padding: '6px 16px',
+            background: 'rgba(96, 165, 250, 0.1)',
+            border: '1px solid rgba(96, 165, 250, 0.3)',
+            borderRadius: 10,
+            color: '#60a5fa',
+            fontSize: 'clamp(11px, 2.8vw, 13px)',
+            cursor: 'pointer',
+            fontWeight: 500,
+          }}
+        >
+          🎮 Nochmal spielen
+        </button>
+      )}
 
       {/* CSS Animations */}
       <style>{`

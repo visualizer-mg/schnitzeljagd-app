@@ -268,7 +268,8 @@ export default function ScooterGame({ onWin, matrixClue }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let startX = 0, startY = 0, startTime = 0, swiped = false;
+    let startX = 0, startY = 0, startTime = 0, swiped = false, touchDead = false;
+    const MAX_TOUCH_MS = 400; // kill touch after 400ms — swipe/tap are instant gestures
 
     const onTouchStart = (e) => {
       if (e.cancelable) e.preventDefault();
@@ -277,11 +278,14 @@ export default function ScooterGame({ onWin, matrixClue }) {
       startY = t.clientY;
       startTime = Date.now();
       swiped = false;
+      touchDead = false;
     };
 
     const onTouchMove = (e) => {
       if (e.cancelable) e.preventDefault();
-      if (swiped) return;
+      if (swiped || touchDead) return;
+      // Kill touch if held too long
+      if (Date.now() - startTime > MAX_TOUCH_MS) { touchDead = true; return; }
       const t = e.touches[0];
       const dy = t.clientY - startY;
       const s = stateRef.current;
@@ -292,16 +296,14 @@ export default function ScooterGame({ onWin, matrixClue }) {
         if (dy < 0 && s.targetLane > 0) s.targetLane--;
         else if (dy > 0 && s.targetLane < LANE_COUNT - 1) s.targetLane++;
         swiped = true;
-        // Reset for next swipe (finger still on screen)
-        startY = t.clientY;
-        setTimeout(() => { swiped = false; }, 200);
+        touchDead = true; // done with this touch
       }
     };
 
-    // Tap detection — only if no swipe happened
+    // Tap detection — only if no swipe happened and touch not dead
     const onTouchEnd = (e) => {
       if (e.cancelable) e.preventDefault();
-      if (swiped) return;
+      if (swiped || touchDead) return;
       const t = e.changedTouches[0];
       const dx = Math.abs(t.clientX - startX);
       const dy = Math.abs(t.clientY - startY);

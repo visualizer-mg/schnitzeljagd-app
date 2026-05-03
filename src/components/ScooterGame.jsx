@@ -25,12 +25,12 @@ const fonts = {
 // ═══════════════════════════════════════════════════════
 
 const CANVAS_W = 480;
-const CANVAS_H = 380;
+const CANVAS_H = 500;
 
 // Lanes — road at bottom of canvas
 // LANE_Y = where the bottom of the elephant/obstacle sits (road surface for that lane)
-const ROAD_TOP = 250;
-const ROAD_BOTTOM = 380;
+const ROAD_TOP = 370;
+const ROAD_BOTTOM = 500;
 const LANE_H = (ROAD_BOTTOM - ROAD_TOP) / 3; // ~42px per lane
 const LANE_Y = [
   ROAD_TOP + LANE_H * 0.5,   // top lane — center line
@@ -52,7 +52,7 @@ const TARGET_KM = 150;
 const PIXELS_PER_METER = 0.15; // how fast distance accumulates
 const BASE_SPEED = 3;
 const MAX_SPEED = 6;
-const LIFE_DROP_INTERVAL = 60; // every 60 km a life pickup appears
+const LIFE_MILESTONES = [50, 100, 125]; // km at which you get a free life
 const MAX_LIVES = 3;
 
 // Obstacles — vehicles use sprite images (auto1-4.webp)
@@ -203,7 +203,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
       speed: BASE_SPEED,
       frame: 0,
       obstacles: [],
-      pickups: [], // life pickups
+      pickups: [],
       lastSpawn: 0,
       spawnInterval: 90, // frames between spawns
       lives: 3,
@@ -212,7 +212,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
       shakeFrames: 0,
       gameOver: false,
       kmReached: 0,
-      lastLifeDrop: 0, // km at which last life was dropped
+      livesGiven: [], // which LIFE_MILESTONES have been awarded
       bgZone: 0, // 0=bg1, 1=bg2, 2=bg3
       bgFade: 0, // 0 = no fade, >0 = fading (counts up to BG_FADE_FRAMES)
     };
@@ -465,19 +465,13 @@ export default function ScooterGame({ onWin, matrixClue }) {
         }
       }
 
-      // ── Spawn life pickups ──
-      const nextLifeKm = s.lastLifeDrop + LIFE_DROP_INTERVAL;
-      if (km >= nextLifeKm && s.lives < MAX_LIVES) {
-        const lane = Math.floor(Math.random() * LANE_COUNT);
-        s.pickups.push({
-          type: 'life',
-          x: CANVAS_W + 50,
-          y: LANE_Y[lane] - 12,
-          lane,
-          w: 24, h: 24,
-        });
-        s.lastLifeDrop = Math.floor(km / LIFE_DROP_INTERVAL) * LIFE_DROP_INTERVAL;
-      }
+      // ── Auto-award lives at milestones (50, 100, 125 km) ──
+      LIFE_MILESTONES.forEach(milestone => {
+        if (km >= milestone && !s.livesGiven.includes(milestone) && s.lives < MAX_LIVES) {
+          s.lives++;
+          s.livesGiven.push(milestone);
+        }
+      });
 
       // ── Move obstacles (dt-scaled) ──
       s.obstacles.forEach(o => {
@@ -485,23 +479,6 @@ export default function ScooterGame({ onWin, matrixClue }) {
         o.x -= s.speed * (isVehicle ? 2.28 : 1.8) * dt;
       });
       s.obstacles = s.obstacles.filter(o => o.x + o.w > -20);
-
-      // ── Move & collect pickups (dt-scaled) ──
-      s.pickups.forEach(p => { p.x -= s.speed * 1.44 * dt; });
-      const elephYForPickup = s.laneY + s.jumpOffsetY;
-      s.pickups = s.pickups.filter(p => {
-        // Check if elephant collects it
-        if (
-          p.x < ELEPH_X + ELEPH_W - 8 && p.x + p.w > ELEPH_X + 8 &&
-          Math.abs(p.y - (elephYForPickup - ELEPH_H / 2)) < 25
-        ) {
-          if (p.type === 'life' && s.lives < MAX_LIVES) {
-            s.lives++;
-          }
-          return false; // consumed
-        }
-        return p.x + p.w > -20;
-      });
 
       // ── Collision detection ──
       if (s.invincible > 0) {
@@ -599,13 +576,15 @@ export default function ScooterGame({ onWin, matrixClue }) {
         ctx.globalAlpha = alpha;
         const bgW = img.naturalWidth;
         const bgH = img.naturalHeight;
-        const scale = CANVAS_H / bgH;
+        // Scale BG to fill sky area (up to ROAD_TOP), not full canvas
+        const skyH = ROAD_TOP;
+        const scale = skyH / bgH;
         const drawW = bgW * scale;
         const scrollX = -(s.bgScroll % drawW);
-        ctx.drawImage(img, scrollX, 0, drawW, CANVAS_H);
-        ctx.drawImage(img, scrollX + drawW, 0, drawW, CANVAS_H);
+        ctx.drawImage(img, scrollX, 0, drawW, skyH);
+        ctx.drawImage(img, scrollX + drawW, 0, drawW, skyH);
         if (scrollX + drawW * 2 < CANVAS_W) {
-          ctx.drawImage(img, scrollX + drawW * 2, 0, drawW, CANVAS_H);
+          ctx.drawImage(img, scrollX + drawW * 2, 0, drawW, skyH);
         }
         ctx.globalAlpha = 1;
       };
@@ -625,26 +604,6 @@ export default function ScooterGame({ onWin, matrixClue }) {
       // ── Obstacles behind elephant (upper lanes = further from viewer) ──
       const elephLane = s.targetLane;
       s.obstacles.filter(o => o.lane <= elephLane).forEach(o => drawObstacle(ctx, o, imgs));
-
-      // ── Life pickups ──
-      s.pickups.forEach(p => {
-        const cx = p.x + p.w / 2;
-        const cy = p.y + p.h / 2;
-        const pulse = Math.sin(s.frame * 0.1) * 0.3 + 0.7;
-        ctx.globalAlpha = pulse;
-        // Draw green "+" cross
-        ctx.fillStyle = '#22c55e';
-        ctx.strokeStyle = '#166534';
-        ctx.lineWidth = 1.5;
-        const armW = 5, armL = 12;
-        // Vertical bar
-        ctx.fillRect(cx - armW, cy - armL, armW * 2, armL * 2);
-        ctx.strokeRect(cx - armW, cy - armL, armW * 2, armL * 2);
-        // Horizontal bar
-        ctx.fillRect(cx - armL, cy - armW, armL * 2, armW * 2);
-        ctx.strokeRect(cx - armL, cy - armW, armL * 2, armW * 2);
-        ctx.globalAlpha = 1;
-      });
 
       // ── Elephant ──
       // Bottom of scooter wheels sits at lane center
@@ -789,7 +748,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
           <span style={{ color: colors.accent, fontWeight: 'bold' }}>
             Schaffe {TARGET_KM} km um Geheimcode freizuschalten!
           </span><br />
-          Alle {LIFE_DROP_INTERVAL} km gibt's ein Extra-Leben ❤️
+          Extra-Leben bei {LIFE_MILESTONES.join(', ')} km ❤️
         </div>
         <button
           onClick={startGame}

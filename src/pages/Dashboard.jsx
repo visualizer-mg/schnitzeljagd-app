@@ -12,19 +12,19 @@ import ScooterGame from '../components/ScooterGame';
 const PLAYER_PUZZLES = {
   andreas: [
     { id: 'andreas-1', label: 'Klavier / Indiana Jones', chained: true, password: 'indiana jones', taunt: 'Krame, so einfach isses net! Erstmal korrektes Passwort eingeben!' },
-    { id: 'andreas-2', label: 'Elephant Scooter Run', chained: true, password: 'wohnwagen', taunt: 'Erstmal das richtige Passwort eingeben, Krame!', game: 'scooter' },
+    { id: 'andreas-2', label: 'Elephant Scooter Run', chained: true, password: 'wohnwagen', taunt: 'Erstmal das richtige Passwort eingeben, Krame!', game: 'scooter', matrixClue: '? ? ?' },
     { id: 'andreas-3', label: 'Rätsel 3', chained: true, password: '' },
   ],
   mark: [
-    { id: 'mark-1', label: 'X-Wing Assault', game: 'xwing' },
+    { id: 'mark-1', label: 'X-Wing Assault', game: 'xwing', matrixClue: 'KRAFT' },
     { id: 'mark-2', label: 'Rätsel 2' },
     { id: 'mark-3', label: 'Rätsel 3' },
   ],
   ellen: [
-    { id: 'ellen-1', label: 'Käse-Jagd', game: 'cheese' },
+    { id: 'ellen-1', label: 'Käse-Jagd', game: 'cheese', matrixClue: 'KÄSE' },
   ],
   theresa: [
-    { id: 'theresa-1', label: 'Himmelsritt', game: 'horse' },
+    { id: 'theresa-1', label: 'Himmelsritt', game: 'horse', matrixClue: 'FREIHEIT' },
   ],
 };
 
@@ -299,6 +299,7 @@ export default function Dashboard({ player, onLogout }) {
                       alreadyOpened={alreadyOpened}
                       solved={isSolved}
                       game={puzzle.game}
+                      matrixClue={puzzle.matrixClue}
                       onOpen={() => handleChestOpen(puzzle.id, puzzle.game)}
                       onReplay={puzzle.game ? () => setActiveGame({ game: puzzle.game, puzzleId: puzzle.id }) : null}
                     />

@@ -177,7 +177,7 @@ function ChainBreakExplosion({ active }) {
 //   4. Correct password → chain explodes → chest unlockable
 //   5. Click chest → shake → open with dual sparkles
 //
-export default function TreasureChest({ label, locked, chained, password, taunt, onOpen, onUnchain, alreadyOpened, solved, game, onReplay }) {
+export default function TreasureChest({ label, locked, chained, password, taunt, onOpen, onUnchain, alreadyOpened, solved, game, onReplay, matrixClue }) {
   const [opened, setOpened] = useState(alreadyOpened || solved || false);
   const [animating, setAnimating] = useState(false);
   const [showSparkles, setShowSparkles] = useState(false);
@@ -499,13 +499,17 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
       {/* Label */}
       <div style={{
         padding: '8px 20px',
-        background: opened
+        background: solved
           ? 'rgba(74, 222, 128, 0.1)'
+          : (opened && game) ? 'rgba(245, 158, 11, 0.08)'
+          : opened ? 'rgba(74, 222, 128, 0.1)'
           : locked ? 'rgba(255,255,255,0.03)'
           : chainState === 'chained' ? 'rgba(245, 158, 11, 0.06)'
           : 'rgba(96, 165, 250, 0.08)',
         border: `1px solid ${
-          opened ? 'rgba(74, 222, 128, 0.25)'
+          solved ? 'rgba(74, 222, 128, 0.25)'
+          : (opened && game) ? 'rgba(245, 158, 11, 0.25)'
+          : opened ? 'rgba(74, 222, 128, 0.25)'
           : locked ? 'rgba(255,255,255,0.06)'
           : chainState === 'chained' ? 'rgba(245, 158, 11, 0.2)'
           : 'rgba(96, 165, 250, 0.2)'
@@ -513,32 +517,87 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
         borderRadius: 12,
         fontSize: 'clamp(13px, 3.2vw, 15px)',
         fontWeight: 500,
-        color: opened ? '#4ade80'
+        color: solved ? '#4ade80'
+          : (opened && game) ? '#fbbf24'
+          : opened ? '#4ade80'
           : locked ? 'rgba(255,255,255,0.3)'
           : chainState === 'chained' ? '#fbbf24' : '#fff',
         textAlign: 'center',
         minWidth: 'clamp(140px, 35vw, 180px)',
       }}>
-        {locked ? '🔒 ' : opened ? '✅ ' : chainState === 'chained' ? '⛓️ ' : ''}{label}
+        {locked ? '🔒 ' : solved ? '✅ ' : (opened && game) ? '🎮 ' : opened ? '✅ ' : chainState === 'chained' ? '⛓️ ' : ''}{label}
       </div>
 
-      {/* Replay button for opened game chests */}
-      {opened && game && onReplay && (
-        <button
-          onClick={onReplay}
-          style={{
-            padding: '6px 16px',
-            background: 'rgba(96, 165, 250, 0.1)',
-            border: '1px solid rgba(96, 165, 250, 0.3)',
-            borderRadius: 10,
-            color: '#60a5fa',
-            fontSize: 'clamp(11px, 2.8vw, 13px)',
-            cursor: 'pointer',
-            fontWeight: 500,
-          }}
-        >
-          🎮 Nochmal spielen
-        </button>
+      {/* Game status + actions for opened game chests */}
+      {opened && game && (
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+        }}>
+          {solved ? (
+            <>
+              {/* Matrix clue revealed */}
+              {matrixClue && (
+                <div style={{
+                  padding: '6px 16px',
+                  background: 'rgba(74, 222, 128, 0.08)',
+                  border: '1px solid rgba(74, 222, 128, 0.2)',
+                  borderRadius: 10,
+                  fontSize: 'clamp(11px, 2.8vw, 13px)',
+                  color: '#4ade80',
+                  fontWeight: 600,
+                  letterSpacing: 1,
+                }}>
+                  🔑 Matrix-Code: {matrixClue}
+                </div>
+              )}
+              {onReplay && (
+                <button
+                  onClick={onReplay}
+                  style={{
+                    padding: '5px 14px',
+                    background: 'rgba(96, 165, 250, 0.08)',
+                    border: '1px solid rgba(96, 165, 250, 0.2)',
+                    borderRadius: 10,
+                    color: '#60a5fa',
+                    fontSize: 'clamp(10px, 2.5vw, 12px)',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                  }}
+                >
+                  🎮 Nochmal spielen
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Game not yet beaten */}
+              <div style={{
+                fontSize: 'clamp(10px, 2.5vw, 12px)',
+                color: 'rgba(245, 158, 11, 0.7)',
+                fontStyle: 'italic',
+              }}>
+                ❌ Spiel noch nicht geschafft
+              </div>
+              {onReplay && (
+                <button
+                  onClick={onReplay}
+                  style={{
+                    padding: '6px 16px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    borderRadius: 10,
+                    color: '#fbbf24',
+                    fontSize: 'clamp(11px, 2.8vw, 13px)',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  🎮 Spiel starten
+                </button>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {/* CSS Animations */}

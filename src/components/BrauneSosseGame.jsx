@@ -84,6 +84,8 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
   const [showLevelComplete, setShowLevelComplete] = useState(false);
   const [levelCompleteText, setLevelCompleteText] = useState('');
   const [pendingNextLevel, setPendingNextLevel] = useState(null); // level number or 'pot'
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
 
   // ─── Audio refs ───
   const musicRef = useRef(null);
@@ -247,6 +249,21 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     setPotCorrect(0);
     setPotWrong(false);
     setScreen('pot');
+  }, []);
+
+  // ─── Pause toggle ───
+  const togglePause = useCallback(() => {
+    const next = !pausedRef.current;
+    pausedRef.current = next;
+    setPaused(next);
+    if (next) {
+      if (musicRef.current) musicRef.current.pause();
+    } else {
+      if (musicRef.current) musicRef.current.play().catch(() => {});
+      // Reset lastTs so dt doesn't spike after unpause
+      const s = stateRef.current;
+      if (s) s.lastTs = 0;
+    }
   }, []);
 
   // ─── Handle "Weiter" button after level complete ───
@@ -491,6 +508,14 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     const loop = (timestamp) => {
       const s = stateRef.current;
       if (!s) return;
+
+      // ── Paused: just keep looping without updating ──
+      if (pausedRef.current) {
+        s.lastTs = 0; // reset so no dt spike on unpause
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
+
       if (!s.lastTs) s.lastTs = timestamp;
       const rawDt = timestamp - s.lastTs;
       s.lastTs = timestamp;
@@ -660,9 +685,10 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         ctx.translate(item.x, item.y);
         ctx.rotate(item.rotation);
         const imgKey = item.isBomb ? 'bomb.png' : item.isKopf ? 'kopf.png' : item.ingredient.img;
+        const drawSize = item.isKopf ? ITEM_SIZE * 1.3 : ITEM_SIZE; // Kopf 30% bigger
         const img = imagesRef.current[imgKey];
         if (img && img.complete) {
-          ctx.drawImage(img, -ITEM_SIZE / 2, -ITEM_SIZE / 2, ITEM_SIZE, ITEM_SIZE);
+          ctx.drawImage(img, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
         } else {
           ctx.fillStyle = (item.isBomb || item.isKopf) ? '#333' : '#8B4513';
           ctx.fillRect(-ITEM_SIZE / 2, -ITEM_SIZE / 2, ITEM_SIZE, ITEM_SIZE);
@@ -1022,6 +1048,60 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             >
               {pendingNextLevel === 'pot' ? '🍲 Zum Topf!' : '▶ Weiter'}
             </button>
+          </div>
+        )}
+        {/* Pause button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); togglePause(); }}
+          onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); togglePause(); }}
+          style={{
+            position: 'absolute',
+            top: 'max(12px, env(safe-area-inset-top))',
+            right: 12,
+            zIndex: 300,
+            padding: '8px 14px',
+            background: 'rgba(0,0,0,0.7)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: 10,
+            color: '#fff',
+            fontSize: 18,
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          {paused ? '▶' : '⏸'}
+        </button>
+        {/* Pause overlay */}
+        {paused && (
+          <div
+            onClick={(e) => { e.stopPropagation(); togglePause(); }}
+            onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); togglePause(); }}
+            style={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.8)',
+              zIndex: 250,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div style={{ fontSize: 60, marginBottom: 15 }}>⏸</div>
+            <div style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: '#fbbf24',
+              marginBottom: 20,
+            }}>
+              Pause
+            </div>
+            <div style={{
+              fontSize: 16,
+              color: 'rgba(255,255,255,0.6)',
+            }}>
+              Tippe um weiterzuspielen
+            </div>
           </div>
         )}
       </div>

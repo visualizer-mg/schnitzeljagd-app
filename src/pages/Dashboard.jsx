@@ -5,6 +5,7 @@ import XWingGame from '../components/XWingGame';
 import CheeseGame from '../components/CheeseGame';
 import HorseGame from '../components/HorseGame';
 import ScooterGame from '../components/ScooterGame';
+import BrauneSosseGame from '../components/BrauneSosseGame';
 
 // Puzzles per player — first chest = game
 // chained: true → needs password before chest can be opened
@@ -25,6 +26,9 @@ const PLAYER_PUZZLES = {
   ],
   theresa: [
     { id: 'theresa-1', label: 'Himmelsritt', game: 'horse', matrixClue: 'FREIHEIT' },
+  ],
+  beate: [
+    { id: 'beate-1', label: 'Braune Soße Kochen', game: 'braune-sosse', matrixClue: '???' },
   ],
 };
 
@@ -155,6 +159,9 @@ export default function Dashboard({ player, onLogout }) {
           )}
           {activeGame.game === 'scooter' && (
             <ScooterGame matrixClue="? ? ?" onWin={() => handleGameWin(activeGame.puzzleId)} />
+          )}
+          {activeGame.game === 'braune-sosse' && (
+            <BrauneSosseGame matrixClue="???" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
         </div>
       </div>

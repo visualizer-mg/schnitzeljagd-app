@@ -86,6 +86,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
   const [pendingNextLevel, setPendingNextLevel] = useState(null); // level number or 'pot'
   const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
+  const [showGameOver, setShowGameOver] = useState(false);
 
   // ─── Audio refs ───
   const musicRef = useRef(null);
@@ -249,6 +250,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     setCollected({});
     setScreen('playing');
     setShowLevelComplete(false);
+    setShowGameOver(false);
     setPendingNextLevel(null);
     pausedRef.current = false;
     setPaused(false);
@@ -442,16 +444,19 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             if (s.lives <= 0) {
               s.gameOver = true;
               if (musicRef.current) musicRef.current.pause();
+              setShowGameOver(true);
             }
           } else if (item.isKopf) {
-            // Kopf hit! Lose a life + own sound
+            // Kopf hit! Lose a life + explosion + own sound
             s.lives--;
             s.bombFlash = 15;
+            s.explosions.push(createExplosion(item.x, item.y));
             playSound(kopfRef);
             setLives(s.lives);
             if (s.lives <= 0) {
               s.gameOver = true;
               if (musicRef.current) musicRef.current.pause();
+              setShowGameOver(true);
             }
           } else {
             // Collect ingredient
@@ -858,17 +863,10 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
       }
 
-      // ── Game over overlay ──
+      // ── Game over darkening (UI overlay handled by React) ──
       if (s.gameOver) {
-        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-        ctx.fillStyle = '#f87171';
-        ctx.font = 'bold 36px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Game Over!', CANVAS_W / 2, CANVAS_H / 2 - 30);
-        ctx.fillStyle = '#fff';
-        ctx.font = '18px sans-serif';
-        ctx.fillText(`Tippe — Level ${s.level} nochmal`, CANVAS_W / 2, CANVAS_H / 2 + 20);
       }
 
       rafRef.current = requestAnimationFrame(loop);
@@ -880,28 +878,11 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     };
   }, [screen, spawnItem, startLevel]);
 
-  // ─── Game Over tap to restart ───
-  useEffect(() => {
-    if (screen !== 'playing') return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const handleRestart = (e) => {
-      if (pausedRef.current) return; // don't restart while paused
-      const s = stateRef.current;
-      if (s && s.gameOver) {
-        if (e.cancelable) e.preventDefault();
-        restartFromCurrentLevel();
-      }
-    };
-
-    canvas.addEventListener('touchstart', handleRestart, { passive: false });
-    canvas.addEventListener('click', handleRestart);
-    return () => {
-      canvas.removeEventListener('touchstart', handleRestart);
-      canvas.removeEventListener('click', handleRestart);
-    };
-  }, [screen]);
+  // ─── Game Over restart handler ───
+  const handleGameOverRestart = useCallback(() => {
+    setShowGameOver(false);
+    restartFromCurrentLevel();
+  }, [restartFromCurrentLevel]);
 
   const handlePotTap = useCallback((index) => {
     setPotItems(prev => {
@@ -1136,6 +1117,54 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             }}>
               Tippe um weiterzuspielen
             </div>
+          </div>
+        )}
+        {/* Game Over overlay */}
+        {showGameOver && (
+          <div style={{
+            position: 'absolute',
+            top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'rgba(0,0,0,0.9)',
+            padding: '30px 50px',
+            borderRadius: 20,
+            textAlign: 'center',
+            zIndex: 200,
+            border: '2px solid #f87171',
+          }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>💀</div>
+            <div style={{
+              fontSize: 26,
+              fontWeight: 700,
+              color: '#f87171',
+              marginBottom: 8,
+            }}>
+              Game Over!
+            </div>
+            <div style={{
+              fontSize: 15,
+              color: 'rgba(255,255,255,0.6)',
+              marginBottom: 20,
+            }}>
+              Level {level} nicht geschafft...
+            </div>
+            <button
+              onClick={handleGameOverRestart}
+              onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); handleGameOverRestart(); }}
+              style={{
+                padding: '14px 40px',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                border: 'none',
+                borderRadius: 14,
+                fontSize: 18,
+                fontWeight: 700,
+                color: '#fff',
+                cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(239,68,68,0.4)',
+              }}
+            >
+              🔄 Level {level} neustarten
+            </button>
           </div>
         )}
       </div>

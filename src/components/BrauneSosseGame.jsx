@@ -286,8 +286,13 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     setScreen('pot');
   }, []);
 
-  // ─── Pause toggle ───
+  // ─── Pause toggle (debounced to prevent double-fire on mobile) ───
+  const pauseCooldownRef = useRef(false);
   const togglePause = useCallback(() => {
+    if (pauseCooldownRef.current) return;
+    pauseCooldownRef.current = true;
+    setTimeout(() => { pauseCooldownRef.current = false; }, 300);
+
     const next = !pausedRef.current;
     pausedRef.current = next;
     setPaused(next);
@@ -295,7 +300,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       if (musicRef.current) musicRef.current.pause();
     } else {
       if (musicRef.current) musicRef.current.play().catch(() => {});
-      // Reset lastTs so dt doesn't spike after unpause
       const s = stateRef.current;
       if (s) s.lastTs = 0;
     }
@@ -723,7 +727,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         ctx.translate(item.x, item.y);
         ctx.rotate(item.rotation);
         const imgKey = item.isBomb ? 'bomb.png' : item.isKopf ? 'kopf.png' : item.ingredient.img;
-        const drawSize = item.isKopf ? ITEM_SIZE * 1.3 : ITEM_SIZE; // Kopf 30% bigger
+        const drawSize = item.isKopf ? ITEM_SIZE * 1.65 : ITEM_SIZE; // Kopf 65% bigger
         const img = imagesRef.current[imgKey];
         if (img && img.complete) {
           ctx.drawImage(img, -drawSize / 2, -drawSize / 2, drawSize, drawSize);

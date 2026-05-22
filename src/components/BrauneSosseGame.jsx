@@ -43,8 +43,8 @@ const SPAWN_INTERVAL_BASE = 800; // ms between spawns
 const SPAWN_INTERVAL_MIN = 400;
 
 // Physics
-const LAUNCH_VY_MIN = -11;
-const LAUNCH_VY_MAX = -8;
+const LAUNCH_VY_MIN = -15;
+const LAUNCH_VY_MAX = -11;
 const GRAVITY = 0.18;
 const LAUNCH_VX_RANGE = 2;
 
@@ -102,6 +102,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       gameOver: false,
       levelDone: false,
       bombFlash: 0,
+      missFlash: 0,       // X flash when missing ingredient
       slicedItems: [],    // recently sliced items floating away
       comboText: [],      // floating "+1" texts
     };
@@ -338,8 +339,43 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         item.x += item.vx * dt;
         item.rotation += item.rotSpeed * dt;
       }
-      // Remove items that fell below screen
-      s.items = s.items.filter(item => item.y < CANVAS_H + 60);
+      // Remove items that fell below screen — penalty for missed correct ingredients
+      const survived = [];
+      for (const item of s.items) {
+        if (item.y >= CANVAS_H + 60) {
+          // Item fell off — if it was a correct ingredient and not sliced, penalty!
+          if (!item.sliced && !item.isBomb && item.ingredient &&
+              CORRECT_INGREDIENTS.some(c => c.key === item.ingredient.key)) {
+            // Deduct 5 from a random collected ingredient
+            const collectedKeys = Object.keys(s.collected).filter(k => s.collected[k] > 0);
+            let deducted = 0;
+            while (deducted < 5 && collectedKeys.length > 0) {
+              const rk = collectedKeys[Math.floor(Math.random() * collectedKeys.length)];
+              if (s.collected[rk] > 0) {
+                s.collected[rk]--;
+                s.totalCollected[rk] = Math.max(0, (s.totalCollected[rk] || 0) - 1);
+                deducted++;
+              }
+              if (s.collected[rk] <= 0) {
+                collectedKeys.splice(collectedKeys.indexOf(rk), 1);
+              }
+            }
+            if (deducted > 0) {
+              s.missFlash = 15;
+              s.comboText.push({
+                x: CANVAS_W / 2, y: CANVAS_H / 2,
+                text: `−${deducted} Zutaten verpasst!`,
+                alpha: 1,
+                vy: -1.5,
+              });
+              setCollected({ ...s.collected });
+            }
+          }
+        } else {
+          survived.push(item);
+        }
+      }
+      s.items = survived;
 
       // ── Update sliced items ──
       for (const si of s.slicedItems) {
@@ -364,6 +400,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
 
       // ── Bomb flash ──
       if (s.bombFlash > 0) s.bombFlash -= 1 * dt;
+      if (s.missFlash > 0) s.missFlash -= 1 * dt;
 
       // ── Check level completion ──
       if (!s.levelDone && !s.gameOver) {
@@ -469,6 +506,20 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       if (s.bombFlash > 0) {
         ctx.fillStyle = `rgba(255, 0, 0, ${s.bombFlash / 40})`;
         ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      }
+
+      // ── Miss flash (orange X) ──
+      if (s.missFlash > 0) {
+        ctx.fillStyle = `rgba(255, 140, 0, ${s.missFlash / 30})`;
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.save();
+        ctx.globalAlpha = s.missFlash / 15;
+        ctx.fillStyle = '#ff4444';
+        ctx.font = 'bold 80px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('✗', CANVAS_W / 2, CANVAS_H / 2);
+        ctx.restore();
       }
 
       // ── HUD ──

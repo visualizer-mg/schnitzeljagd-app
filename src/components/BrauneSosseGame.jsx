@@ -225,6 +225,39 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     }
   }, [initGameState]);
 
+  // ─── Restart from current level (keep previous level progress) ───
+  const restartFromCurrentLevel = useCallback(() => {
+    const oldState = stateRef.current;
+    const currentLevel = oldState ? oldState.level : 1;
+
+    // Keep totalCollected from completed levels, but remove current level's collected
+    const prevTotalCollected = {};
+    if (oldState) {
+      // Restore totalCollected minus what was collected in current level
+      for (const key of Object.keys(oldState.totalCollected)) {
+        const currentLevelAmount = oldState.collected[key] || 0;
+        const total = oldState.totalCollected[key] || 0;
+        prevTotalCollected[key] = Math.max(0, total - currentLevelAmount);
+      }
+    }
+
+    const s = initGameState(currentLevel);
+    s.totalCollected = prevTotalCollected;
+    stateRef.current = s;
+    setLevel(currentLevel);
+    setLives(MAX_LIVES);
+    setCollected({});
+    setScreen('playing');
+    setShowLevelComplete(false);
+    setPendingNextLevel(null);
+    pausedRef.current = false;
+    setPaused(false);
+    if (musicRef.current) {
+      musicRef.current.currentTime = 0;
+      musicRef.current.play().catch(() => {});
+    }
+  }, [initGameState]);
+
   // ─── Pot phase (must be before handleNextLevel) ───
   const goToPot = useCallback((totalCollected) => {
     if (musicRef.current) musicRef.current.pause();
@@ -389,7 +422,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
 
     const checkSlice = (pos) => {
       const s = stateRef.current;
-      if (!s || s.gameOver || s.levelDone) return;
+      if (!s || s.gameOver || s.levelDone || pausedRef.current) return;
 
       for (const item of s.items) {
         if (item.sliced) continue;
@@ -835,7 +868,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         ctx.fillText('Game Over!', CANVAS_W / 2, CANVAS_H / 2 - 30);
         ctx.fillStyle = '#fff';
         ctx.font = '18px sans-serif';
-        ctx.fillText('Tippe um neu zu starten', CANVAS_W / 2, CANVAS_H / 2 + 20);
+        ctx.fillText(`Tippe — Level ${s.level} nochmal`, CANVAS_W / 2, CANVAS_H / 2 + 20);
       }
 
       rafRef.current = requestAnimationFrame(loop);
@@ -854,10 +887,11 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     if (!canvas) return;
 
     const handleRestart = (e) => {
+      if (pausedRef.current) return; // don't restart while paused
       const s = stateRef.current;
       if (s && s.gameOver) {
         if (e.cancelable) e.preventDefault();
-        startGame();
+        restartFromCurrentLevel();
       }
     };
 
@@ -867,7 +901,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       canvas.removeEventListener('touchstart', handleRestart);
       canvas.removeEventListener('click', handleRestart);
     };
-  }, [screen, startGame]);
+  }, [screen]);
 
   const handlePotTap = useCallback((index) => {
     setPotItems(prev => {

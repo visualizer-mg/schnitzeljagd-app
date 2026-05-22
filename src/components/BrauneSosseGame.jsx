@@ -37,35 +37,60 @@ const MAX_LIVES = 3;
 
 // ─── Canvas sizing ───
 const CANVAS_W = 480;
-const CANVAS_H = 700;   // tall for mobile fullscreen feel
-const ITEM_SIZE = 80;    // sprite draw size
-const SPAWN_INTERVAL_BASE = 800; // ms between spawns
+const CANVAS_H = 700;
+const ITEM_SIZE = 80;
+const SPAWN_INTERVAL_BASE = 800;
 const SPAWN_INTERVAL_MIN = 400;
 
 // Physics
 const LAUNCH_VY_MIN = -15;
 const LAUNCH_VY_MAX = -11;
 const GRAVITY = 0.18;
-const LAUNCH_VX_RANGE = 2;
+const LAUNCH_VX_RANGE = 2.5;
+const WALL_LEFT = ITEM_SIZE / 2;
+const WALL_RIGHT = CANVAS_W - ITEM_SIZE / 2;
+const WALL_BOUNCE = -0.7; // velocity multiplier on bounce
 
 // Swipe detection
-const SWIPE_RADIUS = 50; // px — how close swipe must be to item center
+const SWIPE_RADIUS = 50;
+
+// ─── Audio helper ───
+function playSound(audioRef) {
+  if (!audioRef.current) return;
+  try {
+    audioRef.current.currentTime = 0;
+    audioRef.current.play().catch(() => {});
+  } catch (e) { /* ignore */ }
+}
+
+function playSwordSound(swordRefs) {
+  const idx = Math.floor(Math.random() * swordRefs.length);
+  playSound(swordRefs[idx]);
+}
 
 export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
   const rafRef = useRef(null);
-  const [screen, setScreen] = useState('title'); // title | playing | pot | password | win
+  const [screen, setScreen] = useState('title');
   const [level, setLevel] = useState(1);
   const [lives, setLives] = useState(MAX_LIVES);
-  const [collected, setCollected] = useState({}); // { key: count }
-  const [potItems, setPotItems] = useState([]); // items thrown in pot
+  const [collected, setCollected] = useState({});
+  const [potItems, setPotItems] = useState([]);
   const [potCorrect, setPotCorrect] = useState(0);
   const [potWrong, setPotWrong] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [showLevelComplete, setShowLevelComplete] = useState(false);
   const [levelCompleteText, setLevelCompleteText] = useState('');
+
+  // ─── Audio refs ───
+  const musicRef = useRef(null);
+  const sword1Ref = useRef(null);
+  const sword2Ref = useRef(null);
+  const sword3Ref = useRef(null);
+  const errorRef = useRef(null);
+  const explosionRef = useRef(null);
 
   // ─── Image loading ───
   const imagesRef = useRef({});
@@ -88,13 +113,46 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     });
   }, []);
 
+  // ─── Audio loading ───
+  useEffect(() => {
+    musicRef.current = new Audio(ASSET_BASE + 'TheNinja_Full_bpm140.mp3');
+    musicRef.current.loop = true;
+    musicRef.current.volume = 0.35;
+
+    sword1Ref.current = new Audio(ASSET_BASE + 'Sword_swing_01.wav');
+    sword2Ref.current = new Audio(ASSET_BASE + 'Sword_swing_02.wav');
+    sword3Ref.current = new Audio(ASSET_BASE + 'Sword_swing_03.wav');
+    sword1Ref.current.volume = 0.5;
+    sword2Ref.current.volume = 0.5;
+    sword3Ref.current.volume = 0.5;
+
+    errorRef.current = new Audio(ASSET_BASE + 'Error.mp3');
+    errorRef.current.volume = 0.6;
+
+    explosionRef.current = new Audio(ASSET_BASE + 'Explosion.mp3');
+    explosionRef.current.volume = 0.7;
+
+    return () => {
+      if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
+    };
+  }, []);
+
+  // ─── Start/stop music based on screen ───
+  useEffect(() => {
+    if (screen === 'playing') {
+      if (musicRef.current) musicRef.current.play().catch(() => {});
+    } else if (screen === 'title' || screen === 'win') {
+      if (musicRef.current) musicRef.current.pause();
+    }
+  }, [screen]);
+
   // ─── Game state (mutable for rAF loop) ───
   const initGameState = useCallback((lvl) => {
     return {
-      items: [],          // flying items on screen
-      sliceTrail: [],     // visual trail of swipe
-      collected: {},      // { key: count } — for this level
-      totalCollected: {}, // running total across all levels
+      items: [],
+      sliceTrail: [],
+      collected: {},
+      totalCollected: {},
       spawnTimer: 0,
       lastTs: 0,
       level: lvl,
@@ -102,9 +160,10 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       gameOver: false,
       levelDone: false,
       bombFlash: 0,
-      missFlash: 0,       // X flash when missing ingredient
-      slicedItems: [],    // recently sliced items floating away
-      comboText: [],      // floating "+1" texts
+      missFlash: 0,
+      explosions: [],     // particle explosions
+      slicedItems: [],
+      comboText: [],
     };
   }, []);
 
@@ -138,22 +197,64 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     setShowLevelComplete(false);
   }, [initGameState]);
 
+  // ─── Create explosion particles ───
+  const createExplosion = useCallback((x, y) => {
+    const particles = [];
+    const count = 40;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+      const speed = 3 + Math.random() * 8;
+      const size = 4 + Math.random() * 10;
+      // Fire colors: bright yellow → orange → red → dark red
+      const colors = ['#ffff00', '#ffcc00', '#ff8800', '#ff4400', '#ff2200', '#cc0000', '#881100'];
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 3, // slight upward bias
+        size,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1,
+        life: 1,
+        decay: 0.015 + Math.random() * 0.02,
+        gravity: 0.08 + Math.random() * 0.05,
+      });
+    }
+    // Add some smoke particles
+    for (let i = 0; i < 15; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 3;
+      particles.push({
+        x: x + (Math.random() - 0.5) * 30,
+        y: y + (Math.random() - 0.5) * 30,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        size: 15 + Math.random() * 25,
+        color: '#444',
+        alpha: 0.6,
+        life: 0.6,
+        decay: 0.008 + Math.random() * 0.005,
+        gravity: -0.02, // smoke rises
+        isSmoke: true,
+      });
+    }
+    return { particles, flash: 1.0 };
+  }, []);
+
   // ─── Spawn items ───
   const spawnItem = useCallback((s) => {
     const target = LEVEL_TARGETS[s.level] || 10;
-    // Decide what to spawn: correct, wrong, or bomb
     const r = Math.random();
     let ingredient;
     let isBomb = false;
 
-    if (r < 0.15) {
-      // 15% chance bomb
+    if (r < 0.22) {
+      // 22% chance bomb (up from 15%)
       isBomb = true;
-    } else if (r < 0.35) {
-      // 20% chance wrong ingredient
+    } else if (r < 0.40) {
+      // 18% chance wrong ingredient
       ingredient = WRONG_INGREDIENTS[Math.floor(Math.random() * WRONG_INGREDIENTS.length)];
     } else {
-      // 65% correct — prefer under-collected ones
+      // 60% correct — prefer under-collected ones
       const underCollected = CORRECT_INGREDIENTS.filter(
         ing => (s.collected[ing.key] || 0) < target
       );
@@ -189,7 +290,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     if (!canvas) return;
 
     let touching = false;
-    let lastTouchPos = null;
 
     const getPos = (e) => {
       const rect = canvas.getBoundingClientRect();
@@ -215,12 +315,15 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
           item.sliced = true;
 
           if (item.isBomb) {
-            // Bomb hit! Lose a life
+            // Bomb hit! Explosion!
             s.lives--;
             s.bombFlash = 20;
+            s.explosions.push(createExplosion(item.x, item.y));
+            playSound(explosionRef);
             setLives(s.lives);
             if (s.lives <= 0) {
               s.gameOver = true;
+              if (musicRef.current) musicRef.current.pause();
             }
           } else {
             // Collect ingredient
@@ -228,6 +331,9 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             s.collected[key] = (s.collected[key] || 0) + 1;
             s.totalCollected[key] = (s.totalCollected[key] || 0) + 1;
             setCollected({ ...s.collected });
+
+            // Sword sound
+            playSwordSound([sword1Ref, sword2Ref, sword3Ref]);
 
             // Floating text
             s.comboText.push({
@@ -259,33 +365,21 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     const onTouchStart = (e) => {
       if (e.cancelable) e.preventDefault();
       touching = true;
-      lastTouchPos = getPos(e);
-      checkSlice(lastTouchPos);
+      checkSlice(getPos(e));
     };
     const onTouchMove = (e) => {
       if (e.cancelable) e.preventDefault();
       if (!touching) return;
-      const pos = getPos(e);
-      checkSlice(pos);
-      lastTouchPos = pos;
+      checkSlice(getPos(e));
     };
     const onTouchEnd = (e) => {
       if (e.cancelable) e.preventDefault();
       touching = false;
-      lastTouchPos = null;
     };
 
     // Mouse fallback for dev
-    const onMouseDown = (e) => {
-      touching = true;
-      const pos = getPos(e);
-      checkSlice(pos);
-    };
-    const onMouseMove = (e) => {
-      if (!touching) return;
-      const pos = getPos(e);
-      checkSlice(pos);
-    };
+    const onMouseDown = (e) => { touching = true; checkSlice(getPos(e)); };
+    const onMouseMove = (e) => { if (touching) checkSlice(getPos(e)); };
     const onMouseUp = () => { touching = false; };
 
     canvas.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -303,7 +397,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       canvas.removeEventListener('mousemove', onMouseMove);
       canvas.removeEventListener('mouseup', onMouseUp);
     };
-  }, [screen]);
+  }, [screen, createExplosion]);
 
   // ─── Game loop ───
   useEffect(() => {
@@ -338,15 +432,23 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         item.y += item.vy * dt;
         item.x += item.vx * dt;
         item.rotation += item.rotSpeed * dt;
+
+        // Wall bounce
+        if (item.x < WALL_LEFT) {
+          item.x = WALL_LEFT;
+          item.vx *= WALL_BOUNCE;
+        } else if (item.x > WALL_RIGHT) {
+          item.x = WALL_RIGHT;
+          item.vx *= WALL_BOUNCE;
+        }
       }
+
       // Remove items that fell below screen — penalty for missed correct ingredients
       const survived = [];
       for (const item of s.items) {
         if (item.y >= CANVAS_H + 60) {
-          // Item fell off — if it was a correct ingredient and not sliced, penalty!
           if (!item.sliced && !item.isBomb && item.ingredient &&
               CORRECT_INGREDIENTS.some(c => c.key === item.ingredient.key)) {
-            // Deduct 5 from a random collected ingredient
             const collectedKeys = Object.keys(s.collected).filter(k => s.collected[k] > 0);
             let deducted = 0;
             while (deducted < 5 && collectedKeys.length > 0) {
@@ -362,6 +464,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             }
             if (deducted > 0) {
               s.missFlash = 15;
+              playSound(errorRef);
               s.comboText.push({
                 x: CANVAS_W / 2, y: CANVAS_H / 2,
                 text: `−${deducted} Zutaten verpasst!`,
@@ -376,6 +479,25 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         }
       }
       s.items = survived;
+
+      // ── Update explosions ──
+      for (const expl of s.explosions) {
+        expl.flash = Math.max(0, expl.flash - 0.04 * dt);
+        for (const p of expl.particles) {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vy += p.gravity * dt;
+          p.life -= p.decay * dt;
+          p.alpha = Math.max(0, p.life);
+          if (!p.isSmoke) {
+            p.size *= (1 - 0.01 * dt); // shrink fire particles
+          } else {
+            p.size *= (1 + 0.005 * dt); // smoke expands
+          }
+        }
+        expl.particles = expl.particles.filter(p => p.life > 0);
+      }
+      s.explosions = s.explosions.filter(e => e.particles.length > 0 || e.flash > 0);
 
       // ── Update sliced items ──
       for (const si of s.slicedItems) {
@@ -398,7 +520,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       for (const t of s.sliceTrail) t.alpha -= 0.05 * dt;
       s.sliceTrail = s.sliceTrail.filter(t => t.alpha > 0);
 
-      // ── Bomb flash ──
+      // ── Flash timers ──
       if (s.bombFlash > 0) s.bombFlash -= 1 * dt;
       if (s.missFlash > 0) s.missFlash -= 1 * dt;
 
@@ -410,7 +532,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         );
         if (allDone) {
           s.levelDone = true;
-          // Show level complete message
           if (s.level < 3) {
             setShowLevelComplete(true);
             setLevelCompleteText(`Level ${s.level} geschafft!`);
@@ -418,7 +539,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
               startLevel(s.level + 1, true);
             }, 2000);
           } else {
-            // Level 3 done → go to pot phase
             setShowLevelComplete(true);
             setLevelCompleteText('Alle Zutaten gesammelt! Ab in den Topf!');
             setTimeout(() => {
@@ -428,8 +548,11 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         }
       }
 
-      // ── Draw ──
-      // Background — dark kitchen gradient
+      // ════════════════════════════════════
+      // DRAW
+      // ════════════════════════════════════
+
+      // Background — dark kitchen
       ctx.fillStyle = '#1a0a00';
       ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
@@ -442,7 +565,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         ctx.fillRect(0, j, CANVAS_W, 1);
       }
 
-      // ── Draw slice trail ──
+      // ── Slice trail ──
       for (let i = 1; i < s.sliceTrail.length; i++) {
         const prev = s.sliceTrail[i - 1];
         const curr = s.sliceTrail[i];
@@ -461,24 +584,22 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         ctx.save();
         ctx.translate(item.x, item.y);
         ctx.rotate(item.rotation);
-
         const imgKey = item.isBomb ? 'bomb.png' : item.ingredient.img;
         const img = imagesRef.current[imgKey];
         if (img && img.complete) {
           ctx.drawImage(img, -ITEM_SIZE / 2, -ITEM_SIZE / 2, ITEM_SIZE, ITEM_SIZE);
         } else {
-          // Fallback
           ctx.fillStyle = item.isBomb ? '#333' : '#8B4513';
           ctx.fillRect(-ITEM_SIZE / 2, -ITEM_SIZE / 2, ITEM_SIZE, ITEM_SIZE);
           ctx.fillStyle = '#fff';
           ctx.font = '12px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(item.isBomb ? '💣' : item.ingredient.label, 0, 5);
+          ctx.fillText(item.isBomb ? 'BOMB' : item.ingredient.label, 0, 5);
         }
         ctx.restore();
       }
 
-      // ── Draw sliced items (half opacity, falling) ──
+      // ── Draw sliced items ──
       for (const si of s.slicedItems) {
         ctx.save();
         ctx.globalAlpha = si.alpha;
@@ -491,12 +612,49 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         ctx.restore();
       }
 
+      // ── Draw explosions ──
+      for (const expl of s.explosions) {
+        // Flash overlay
+        if (expl.flash > 0) {
+          ctx.save();
+          ctx.globalAlpha = expl.flash * 0.4;
+          ctx.fillStyle = '#ff6600';
+          ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+          ctx.restore();
+        }
+        // Particles
+        for (const p of expl.particles) {
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          if (p.isSmoke) {
+            // Smoke — soft circle
+            const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+            grad.addColorStop(0, `rgba(80, 80, 80, ${p.alpha * 0.5})`);
+            grad.addColorStop(1, 'rgba(80, 80, 80, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
+          } else {
+            // Fire particle — glowing circle
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.fill();
+            // Glow
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 200, 50, ${p.alpha * 0.2})`;
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
       // ── Combo text ──
       for (const ct of s.comboText) {
         ctx.save();
         ctx.globalAlpha = ct.alpha;
-        ctx.fillStyle = '#fbbf24';
-        ctx.font = 'bold 18px sans-serif';
+        ctx.fillStyle = ct.text.startsWith('−') ? '#ff6644' : '#fbbf24';
+        ctx.font = ct.text.startsWith('−') ? 'bold 22px sans-serif' : 'bold 18px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(ct.text, ct.x, ct.y);
         ctx.restore();
@@ -523,7 +681,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       }
 
       // ── HUD ──
-      // Level + Lives at top
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(0, 0, CANVAS_W, 50);
 
@@ -532,7 +689,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       ctx.textAlign = 'left';
       ctx.fillText(`Level ${s.level}`, 15, 33);
 
-      // Lives
       ctx.textAlign = 'right';
       ctx.fillStyle = '#f87171';
       let heartsText = '';
@@ -542,7 +698,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       ctx.font = '22px sans-serif';
       ctx.fillText(heartsText, CANVAS_W - 10, 35);
 
-      // Progress bar at bottom
+      // Progress bar
       const target = LEVEL_TARGETS[s.level];
       const totalNeeded = CORRECT_INGREDIENTS.length * target;
       const totalGot = CORRECT_INGREDIENTS.reduce(
@@ -614,7 +770,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
 
   // ─── Pot phase ───
   const goToPot = useCallback((totalCollected) => {
-    // Build list of collected items for the pot screen
+    if (musicRef.current) musicRef.current.pause();
     const items = [];
     for (const ing of ALL_INGREDIENTS) {
       const count = totalCollected[ing.key] || 0;
@@ -649,16 +805,16 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         items[index] = { ...item, inPot: true };
         const newCorrectCount = items.filter(i => i.isCorrect && i.inPot).length;
         setPotCorrect(newCorrectCount);
+        playSwordSound([sword1Ref, sword2Ref, sword3Ref]);
 
-        // All correct in pot?
         if (newCorrectCount === CORRECT_INGREDIENTS.length) {
           setTimeout(() => setScreen('password'), 1500);
         }
         return items;
       } else {
-        // Wrong ingredient! Reset pot
         items[index] = { ...item, rejected: true };
         setPotWrong(true);
+        playSound(errorRef);
         setTimeout(() => {
           setPotItems(prev2 => prev2.map(it => ({
             ...it,
@@ -681,6 +837,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       if (onWin) onWin();
     } else {
       setPasswordError(true);
+      playSound(errorRef);
       setTimeout(() => setPasswordError(false), 2000);
     }
   }, [passwordInput, onWin]);
@@ -690,7 +847,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
     width: '100vw',
-    height: '100vh',
     height: '100dvh',
     background: '#1a0a00',
     zIndex: 100,
@@ -821,7 +977,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
           width: '100%',
           maxWidth: 480,
         }}>
-          {/* Pot header */}
           <div style={{ textAlign: 'center', marginBottom: 15 }}>
             <div style={{ fontSize: 50 }}>🍲</div>
             <h2 style={{
@@ -849,7 +1004,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             </div>
           </div>
 
-          {/* Wrong ingredient flash */}
           {potWrong && (
             <div style={{
               background: 'rgba(248, 113, 113, 0.2)',
@@ -866,7 +1020,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             </div>
           )}
 
-          {/* Ingredient grid */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',

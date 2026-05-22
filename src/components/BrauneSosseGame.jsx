@@ -223,6 +223,32 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     }
   }, [initGameState]);
 
+  // ─── Pot phase (must be before handleNextLevel) ───
+  const goToPot = useCallback((totalCollected) => {
+    if (musicRef.current) musicRef.current.pause();
+    const items = [];
+    for (const ing of ALL_INGREDIENTS) {
+      const count = totalCollected[ing.key] || 0;
+      if (count > 0) {
+        items.push({
+          ...ing,
+          count,
+          isCorrect: CORRECT_INGREDIENTS.some(c => c.key === ing.key),
+          inPot: false,
+          rejected: false,
+        });
+      }
+    }
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    setPotItems(items);
+    setPotCorrect(0);
+    setPotWrong(false);
+    setScreen('pot');
+  }, []);
+
   // ─── Handle "Weiter" button after level complete ───
   const handleNextLevel = useCallback(() => {
     if (pendingNextLevel === 'pot') {
@@ -816,33 +842,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       canvas.removeEventListener('click', handleRestart);
     };
   }, [screen, startGame]);
-
-  // ─── Pot phase ───
-  const goToPot = useCallback((totalCollected) => {
-    if (musicRef.current) musicRef.current.pause();
-    const items = [];
-    for (const ing of ALL_INGREDIENTS) {
-      const count = totalCollected[ing.key] || 0;
-      if (count > 0) {
-        items.push({
-          ...ing,
-          count,
-          isCorrect: CORRECT_INGREDIENTS.some(c => c.key === ing.key),
-          inPot: false,
-          rejected: false,
-        });
-      }
-    }
-    // Shuffle
-    for (let i = items.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [items[i], items[j]] = [items[j], items[i]];
-    }
-    setPotItems(items);
-    setPotCorrect(0);
-    setPotWrong(false);
-    setScreen('pot');
-  }, []);
 
   const handlePotTap = useCallback((index) => {
     setPotItems(prev => {

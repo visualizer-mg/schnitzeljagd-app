@@ -83,6 +83,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
   const [passwordError, setPasswordError] = useState(false);
   const [showLevelComplete, setShowLevelComplete] = useState(false);
   const [levelCompleteText, setLevelCompleteText] = useState('');
+  const [pendingNextLevel, setPendingNextLevel] = useState(null); // level number or 'pot'
 
   // ─── Audio refs ───
   const musicRef = useRef(null);
@@ -91,6 +92,9 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
   const sword3Ref = useRef(null);
   const errorRef = useRef(null);
   const explosionRef = useRef(null);
+  const successRef = useRef(null);
+  const hugeWinRef = useRef(null);
+  const kopfRef = useRef(null);
 
   // ─── Image loading ───
   const imagesRef = useRef({});
@@ -99,7 +103,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
   useEffect(() => {
     const allAssets = [
       ...ALL_INGREDIENTS.map(i => i.img),
-      'bomb.png', 'topf.png', 'right.png', 'wrong2.png',
+      'bomb.png', 'kopf.png', 'topf.png', 'right.png', 'wrong2.png',
     ];
     let loaded = 0;
     allAssets.forEach(name => {
@@ -132,6 +136,15 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     explosionRef.current = new Audio(ASSET_BASE + 'Explosion.mp3');
     explosionRef.current.volume = 0.7;
 
+    successRef.current = new Audio(ASSET_BASE + 'Success.wav');
+    successRef.current.volume = 0.7;
+
+    hugeWinRef.current = new Audio(ASSET_BASE + 'huge_win.wav');
+    hugeWinRef.current.volume = 0.8;
+
+    kopfRef.current = new Audio(ASSET_BASE + 'kopf_sound.ogg');
+    kopfRef.current.volume = 0.8;
+
     return () => {
       if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
     };
@@ -140,10 +153,16 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
   // ─── Start/stop music based on screen ───
   useEffect(() => {
     if (screen === 'playing') {
-      if (musicRef.current) musicRef.current.play().catch(() => {});
+      if (musicRef.current) {
+        // If paused (e.g. after game over restart), resume
+        if (musicRef.current.paused) {
+          musicRef.current.play().catch(() => {});
+        }
+      }
     } else if (screen === 'title' || screen === 'win') {
       if (musicRef.current) musicRef.current.pause();
     }
+    // pot + password: music already paused by goToPot, don't restart
   }, [screen]);
 
   // ─── Game state (mutable for rAF loop) ───
@@ -180,6 +199,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     setCollected({});
     setScreen('playing');
     setShowLevelComplete(false);
+    setPendingNextLevel(null);
   }, [initGameState]);
 
   const startGame = useCallback(() => {
@@ -195,7 +215,24 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     setPasswordError(false);
     setScreen('playing');
     setShowLevelComplete(false);
+    setPendingNextLevel(null);
+    // Restart music
+    if (musicRef.current) {
+      musicRef.current.currentTime = 0;
+      musicRef.current.play().catch(() => {});
+    }
   }, [initGameState]);
+
+  // ─── Handle "Weiter" button after level complete ───
+  const handleNextLevel = useCallback(() => {
+    if (pendingNextLevel === 'pot') {
+      const s = stateRef.current;
+      if (s) goToPot(s.totalCollected);
+    } else if (typeof pendingNextLevel === 'number') {
+      startLevel(pendingNextLevel, true);
+    }
+    setPendingNextLevel(null);
+  }, [pendingNextLevel, goToPot, startLevel]);
 
   // ─── Create explosion particles ───
   const createExplosion = useCallback((x, y) => {
@@ -246,12 +283,16 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     const r = Math.random();
     let ingredient;
     let isBomb = false;
+    let isKopf = false;
 
-    if (r < 0.22) {
-      // 22% chance bomb (up from 15%)
+    if (r < 0.12) {
+      // 12% chance bomb
       isBomb = true;
+    } else if (r < 0.24) {
+      // 12% chance kopf
+      isKopf = true;
     } else if (r < 0.40) {
-      // 18% chance wrong ingredient
+      // 16% chance wrong ingredient
       ingredient = WRONG_INGREDIENTS[Math.floor(Math.random() * WRONG_INGREDIENTS.length)];
     } else {
       // 60% correct — prefer under-collected ones
@@ -277,7 +318,8 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       rotation: 0,
       rotSpeed: (Math.random() - 0.5) * 0.1,
       isBomb,
-      ingredient: isBomb ? null : ingredient,
+      isKopf,
+      ingredient: (isBomb || isKopf) ? null : ingredient,
       sliced: false,
       id: Date.now() + Math.random(),
     });
@@ -320,6 +362,16 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             s.bombFlash = 20;
             s.explosions.push(createExplosion(item.x, item.y));
             playSound(explosionRef);
+            setLives(s.lives);
+            if (s.lives <= 0) {
+              s.gameOver = true;
+              if (musicRef.current) musicRef.current.pause();
+            }
+          } else if (item.isKopf) {
+            // Kopf hit! Lose a life + own sound
+            s.lives--;
+            s.bombFlash = 15;
+            playSound(kopfRef);
             setLives(s.lives);
             if (s.lives <= 0) {
               s.gameOver = true;
@@ -447,7 +499,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       const survived = [];
       for (const item of s.items) {
         if (item.y >= CANVAS_H + 60) {
-          if (!item.sliced && !item.isBomb && item.ingredient &&
+          if (!item.sliced && !item.isBomb && !item.isKopf && item.ingredient &&
               CORRECT_INGREDIENTS.some(c => c.key === item.ingredient.key)) {
             const collectedKeys = Object.keys(s.collected).filter(k => s.collected[k] > 0);
             let deducted = 0;
@@ -532,18 +584,15 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         );
         if (allDone) {
           s.levelDone = true;
+          playSound(successRef);
           if (s.level < 3) {
             setShowLevelComplete(true);
             setLevelCompleteText(`Level ${s.level} geschafft!`);
-            setTimeout(() => {
-              startLevel(s.level + 1, true);
-            }, 2000);
+            setPendingNextLevel(s.level + 1);
           } else {
             setShowLevelComplete(true);
             setLevelCompleteText('Alle Zutaten gesammelt! Ab in den Topf!');
-            setTimeout(() => {
-              goToPot(s.totalCollected);
-            }, 2500);
+            setPendingNextLevel('pot');
           }
         }
       }
@@ -584,17 +633,17 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         ctx.save();
         ctx.translate(item.x, item.y);
         ctx.rotate(item.rotation);
-        const imgKey = item.isBomb ? 'bomb.png' : item.ingredient.img;
+        const imgKey = item.isBomb ? 'bomb.png' : item.isKopf ? 'kopf.png' : item.ingredient.img;
         const img = imagesRef.current[imgKey];
         if (img && img.complete) {
           ctx.drawImage(img, -ITEM_SIZE / 2, -ITEM_SIZE / 2, ITEM_SIZE, ITEM_SIZE);
         } else {
-          ctx.fillStyle = item.isBomb ? '#333' : '#8B4513';
+          ctx.fillStyle = (item.isBomb || item.isKopf) ? '#333' : '#8B4513';
           ctx.fillRect(-ITEM_SIZE / 2, -ITEM_SIZE / 2, ITEM_SIZE, ITEM_SIZE);
           ctx.fillStyle = '#fff';
           ctx.font = '12px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(item.isBomb ? 'BOMB' : item.ingredient.label, 0, 5);
+          ctx.fillText(item.isBomb ? 'BOMB' : item.isKopf ? 'KOPF' : item.ingredient.label, 0, 5);
         }
         ctx.restore();
       }
@@ -834,6 +883,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     const answer = passwordInput.trim().toLowerCase();
     if (answer === 'braune soße' || answer === 'braune sosse' || answer === 'braune sauce') {
       setScreen('win');
+      playSound(hugeWinRef);
       if (onWin) onWin();
     } else {
       setPasswordError(true);
@@ -940,7 +990,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             position: 'absolute',
             top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
-            background: 'rgba(0,0,0,0.85)',
+            background: 'rgba(0,0,0,0.9)',
             padding: '30px 50px',
             borderRadius: 20,
             textAlign: 'center',
@@ -952,9 +1002,27 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
               fontSize: 22,
               fontWeight: 700,
               color: '#fbbf24',
+              marginBottom: 20,
             }}>
               {levelCompleteText}
             </div>
+            <button
+              onClick={handleNextLevel}
+              onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); handleNextLevel(); }}
+              style={{
+                padding: '14px 40px',
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                border: 'none',
+                borderRadius: 14,
+                fontSize: 18,
+                fontWeight: 700,
+                color: '#fff',
+                cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
+              }}
+            >
+              {pendingNextLevel === 'pot' ? '🍲 Zum Topf!' : '▶ Weiter'}
+            </button>
           </div>
         )}
       </div>

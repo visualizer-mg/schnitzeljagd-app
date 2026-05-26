@@ -39,7 +39,7 @@ const CLOSE_MESSAGES = [
   'Du bist auf der richtigen Spur... aber das ist es noch nicht! 👀',
 ];
 
-export default function PeriodensystemGame({ matrixClue, onWin }) {
+export default function PeriodensystemGame({ matrixClue, onWin, onBack }) {
   const [answers, setAnswers] = useState(['', '', '']);
   const [solved, setSolved] = useState([false, false, false]);
   const [feedback, setFeedback] = useState([null, null, null]);
@@ -66,7 +66,7 @@ export default function PeriodensystemGame({ matrixClue, onWin }) {
       // Check if all solved
       if (newSolved.every(Boolean)) {
         setTimeout(() => setWon(true), 800);
-        if (onWin) setTimeout(onWin, 1200);
+        if (onWin) onWin();
       }
     } else if (val === 'baumn') {
       const newFeedback = [...feedback];
@@ -138,6 +138,23 @@ export default function PeriodensystemGame({ matrixClue, onWin }) {
           und im Garten in der Nähe des Mähroboters den <span style={{ color: colors.yellow, fontWeight: 'bold' }}>BAUM</span> abzusuchen.
           Vermutlich findest du dort den Matrix-Clue 😊
         </div>
+        <button
+          onClick={onBack}
+          style={{
+            marginTop: 32,
+            padding: '12px 28px',
+            background: colors.yellow,
+            border: 'none',
+            borderRadius: 10,
+            color: '#000',
+            fontFamily: fonts.mono,
+            fontSize: 14,
+            fontWeight: 'bold',
+            cursor: 'pointer',
+          }}
+        >
+          ← Zurück zu den Rätseltruhen
+        </button>
       </div>
     );
   }

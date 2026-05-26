@@ -21,7 +21,7 @@ const PLAYER_PUZZLES = {
   ],
   mark: [
     { id: 'mark-1', label: 'Rätsel 1', solvedLabel: 'X-Wing Assault', chained: true, password: 'star wars', taunt: 'Mark, so einfach isses net! Erstmal korrektes Passwort eingeben!', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
-    { id: 'mark-2', label: 'Rätsel 2', solvedLabel: 'Periodensystem', game: 'periodensystem' },
+    { id: 'mark-2', label: 'Rätsel 2', solvedLabel: 'Periodensystem', game: 'periodensystem', replayLabel: '📋 Ergebnis nochmal ansehen' },
   ],
   ellen: [
     { id: 'ellen-1', label: 'Käse-Jagd', game: 'cheese', matrixClue: 'C1: 3 - 8 - 4 - 6 - 1 - 2' },
@@ -178,7 +178,7 @@ export default function Dashboard({ player, onLogout }) {
             <PuzzleGame matrixClue="C11: 2 - 0 - 5 - 9 - 3" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
           {activeGame.game === 'periodensystem' && (
-            <PeriodensystemGame matrixClue="C2: 4 - 7 - 1 - 9 - 3" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <PeriodensystemGame onWin={() => handleGameWin(activeGame.puzzleId)} onBack={() => setActiveGame(null)} />
           )}
         </div>
       </div>
@@ -326,6 +326,7 @@ export default function Dashboard({ player, onLogout }) {
                       matrixClue={puzzle.matrixClue}
                       onOpen={() => handleChestOpen(puzzle.id, puzzle.game)}
                       onReplay={puzzle.game ? () => setActiveGame({ game: puzzle.game, puzzleId: puzzle.id }) : null}
+                      replayLabel={puzzle.replayLabel}
                     />
                   );
                 })}

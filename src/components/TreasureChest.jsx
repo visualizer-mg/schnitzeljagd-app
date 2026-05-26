@@ -177,7 +177,7 @@ function ChainBreakExplosion({ active }) {
 //   4. Correct password → chain explodes → chest unlockable
 //   5. Click chest → shake → open with dual sparkles
 //
-export default function TreasureChest({ label, locked, chained, password, taunt, onOpen, onUnchain, alreadyOpened, solved, game, onReplay, matrixClue }) {
+export default function TreasureChest({ label, locked, chained, password, taunt, onOpen, onUnchain, alreadyOpened, solved, game, onReplay, replayLabel, matrixClue }) {
   const [opened, setOpened] = useState(alreadyOpened || solved || false);
   const [animating, setAnimating] = useState(false);
   const [showSparkles, setShowSparkles] = useState(false);
@@ -564,7 +564,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
                     fontWeight: 500,
                   }}
                 >
-                  🎮 Nochmal spielen
+                  {replayLabel || '🎮 Nochmal spielen'}
                 </button>
               )}
             </>

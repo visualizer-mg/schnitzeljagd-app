@@ -7,6 +7,7 @@ import HorseGame from '../components/HorseGame';
 import ScooterGame from '../components/ScooterGame';
 import BrauneSosseGame from '../components/BrauneSosseGame';
 import MemoryGame from '../components/MemoryGame';
+import PuzzleGame from '../components/PuzzleGame';
 
 // Puzzles per player — first chest = game
 // chained: true → needs password before chest can be opened
@@ -33,6 +34,9 @@ const PLAYER_PUZZLES = {
   ],
   andrea: [
     { id: 'andrea-1', label: 'Memory Challenge', game: 'memory', matrixClue: 'D2: 7, 8, 1, 2' },
+  ],
+  rowena: [
+    { id: 'rowena-1', label: 'Foto-Puzzle', game: 'puzzle', matrixClue: 'C11: 2, 0, 5, 9, 3' },
   ],
 };
 
@@ -169,6 +173,9 @@ export default function Dashboard({ player, onLogout }) {
           )}
           {activeGame.game === 'memory' && (
             <MemoryGame matrixClue="D2: 7, 8, 1, 2" onWin={() => handleGameWin(activeGame.puzzleId)} />
+          )}
+          {activeGame.game === 'puzzle' && (
+            <PuzzleGame matrixClue="C11: 2, 0, 5, 9, 3" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
         </div>
       </div>

@@ -291,7 +291,7 @@ export default function Dashboard({ player, onLogout }) {
                 marginBottom: 'clamp(16px, 4vw, 24px)',
                 textAlign: 'center',
               }}>
-                Deine Schatztruhen
+                Deine Rätseltruhen
               </h3>
 
               <div style={{

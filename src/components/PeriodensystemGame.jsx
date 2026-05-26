@@ -23,20 +23,7 @@ const ELEMENT_NAMES = [
   'tin', 'potassium', 'uranium', 'sulfur', 'boron',
 ];
 
-const STORIES = [
-  {
-    title: '📖 Text 1: „Der Dachboden"',
-    text: `Als Kind hat Peter bei Opa immer auf dem Dachboden gestöbert. In einer verstaubten Holzkiste fand er einmal eine ganze Armee winziger Soldaten — gegossen aus dem Material, das man schon im Mittelalter für Figuren und Geschirr verwendete. Opas ganzer Stolz. Daneben lag ein vergilbtes Buch über Marie Curie. Opa hatte eine Stelle angestrichen — es ging um eine Entdeckung, die nach dem griechischen Wort für Strahl benannt wurde. „Das hier hat die Welt verändert," sagte er. Bevor sie wieder runtergingen, drückte Oma ihm eine Banane in die Hand. „Iss! Da steckt jede Menge von dem Stoff drin, der gut fürs Herz ist." Peter hat die Banane gegessen. An die drei Hinweise hat er nicht gedacht. Vielleicht sollte er das jetzt nachholen.`,
-  },
-  {
-    title: '📖 Text 2: „Der Ausflug"',
-    text: `Peter fährt mit seinem Kumpel durch Sachsen. In Freiberg erzählt eine Gedenktafel von Clemens Winkler, der 1886 hier eine Entdeckung machte und sie stolz nach seinem Vaterland benannte. Weiter geht's ins Erzgebirge. Im Museum liegt ein alter Sack voller Fünf-Cent-Stücke aus Amerika. In der Pension am Abend läuft eine Doku über Wilhelm Herschel, der 1781 den siebten Planeten entdeckte — kurz darauf taufte ein Berliner Chemiker seine eigene Entdeckung nach genau diesem Himmelskörper. Am nächsten Morgen wandern sie an einem Vulkankrater vorbei. Es stinkt bestialisch nach faulen Eiern. Peter hält sich die Nase zu — aber die Antwort liegt in der Luft.`,
-  },
-  {
-    title: '📖 Text 3: „Die Expedition"',
-    text: `Drei Abenteurer brechen in den Dschungel auf. Vor der Abreise reinigen sie ihre Ausrüstung mit einem weißen Pulver — Oma hätte es wiedererkannt, sie hat es früher immer zum Waschen benutzt, dieses uralte Mineral, das auch in Glas und Keramik steckt. Tief im Regenwald stoßen sie auf die Ruinen einer alten Tempelstadt. Die Einheimischen nennen sie „El Dorado" — die Legende besagt, dass sich der König der Stadt jeden Morgen mit glänzendem Staub bedecken ließ, bevor er im heiligen See badete. Was für ein Stoff das wohl war? Auf der letzten Etappe bekommt einer der drei plötzlich heftige Muskelkrämpfe. Zum Glück hatte ein anderer noch Tabletten dabei — jenes Mineral, das Sportler schwören lässt, dass es gegen Krämpfe hilft. Am Ende der Expedition haben die drei alles gefunden. Ob Peter das auch schafft?`,
-  },
-];
+const HINT_TEXT = 'Ein monatlicher, blutiger Besuch, den keine Frau bestellt hat + das Gegenteil von Durcheinander/Chaos = dein Schlüssel zum Lösen 🔑';
 
 // Wrong-answer messages
 const WRONG_MESSAGES = [
@@ -329,69 +316,25 @@ export default function PeriodensystemGame({ matrixClue, onWin }) {
         </button>
       )}
 
-      {/* Hint Stories */}
+      {/* Hint */}
       {showHint && (
         <div style={{
           marginTop: 'clamp(24px, 5vw, 36px)',
+          padding: '16px 20px',
+          background: 'rgba(255, 165, 0, 0.08)',
+          border: '1px solid rgba(255, 165, 0, 0.2)',
+          borderRadius: 12,
+          maxWidth: 400,
           width: '100%',
-          maxWidth: 440,
         }}>
           <div style={{
             fontFamily: fonts.mono,
-            fontSize: 13,
-            color: colors.yellow,
-            marginBottom: 16,
+            fontSize: 'clamp(14px, 3.5vw, 16px)',
+            color: 'rgba(255, 165, 0, 0.9)',
             textAlign: 'center',
+            lineHeight: 1.7,
           }}>
-            💡 Vielleicht helfen dir diese Geschichten weiter...
-          </div>
-
-          {STORIES.map((story, i) => (
-            <details
-              key={i}
-              style={{
-                marginBottom: 12,
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 10,
-                overflow: 'hidden',
-              }}
-            >
-              <summary style={{
-                padding: '12px 16px',
-                fontFamily: fonts.mono,
-                fontSize: 14,
-                color: colors.textSecondary,
-                cursor: 'pointer',
-                userSelect: 'none',
-              }}>
-                {story.title}
-              </summary>
-              <div style={{
-                padding: '0 16px 16px 16px',
-                fontFamily: fonts.body || fonts.mono,
-                fontSize: 13,
-                color: 'rgba(255,255,255,0.7)',
-                lineHeight: 1.7,
-              }}>
-                {story.text}
-              </div>
-            </details>
-          ))}
-
-          <div style={{
-            marginTop: 16,
-            padding: '12px 16px',
-            background: 'rgba(255, 165, 0, 0.08)',
-            border: '1px solid rgba(255, 165, 0, 0.2)',
-            borderRadius: 10,
-            fontFamily: fonts.mono,
-            fontSize: 12,
-            color: 'rgba(255, 165, 0, 0.8)',
-            textAlign: 'center',
-            lineHeight: 1.5,
-          }}>
-            🧪 Tipp: In jeder Geschichte sind Hinweise versteckt. Finde heraus, was sie gemeinsam haben — und kombiniere sie richtig!
+            💡 {HINT_TEXT}
           </div>
         </div>
       )}

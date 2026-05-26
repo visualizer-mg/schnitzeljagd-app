@@ -4,7 +4,7 @@ import { colors, fonts } from '../theme';
 const ROWS = 9;
 const COLS = 5;
 const TOTAL = ROWS * COLS;
-const MATRIX_CLUE = 'C11: 2, 0, 5, 9, 3';
+const MATRIX_CLUE = 'C11: 2 - 0 - 5 - 9 - 3';
 const GLOW_COLOR = '#FFE000';
 const GLOW_RGBA = 'rgba(255,224,0,0.6)';
 

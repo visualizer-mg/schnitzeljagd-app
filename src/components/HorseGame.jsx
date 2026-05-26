@@ -698,30 +698,16 @@ export default function HorseGame({ onWin, matrixClue }) {
               textAlign: 'center', marginBottom: 20,
             }}>
               <div style={{
-                fontFamily: fonts.mono, fontSize: 11, color: colors.green,
-                marginBottom: 6, letterSpacing: 2,
+                fontFamily: fonts.mono, fontSize: 14, color: colors.textSecondary,
+                marginBottom: 12, lineHeight: 1.5,
               }}>
-                ★ DEIN MATRIX-CODE ★
+                Herzlichen Glückwunsch!<br />Du hast einen Matrix Clue freigeschaltet:
               </div>
               <div style={{
-                fontFamily: fonts.mono, fontSize: 12, color: colors.textMuted,
-                marginBottom: 8,
+                fontSize: 24, fontFamily: fonts.mono, fontWeight: 'bold',
+                color: colors.yellow, letterSpacing: 2,
               }}>
-                Trage diese Zahlen in Clue <span style={{ color: colors.orange, fontWeight: 'bold' }}>C6</span> der Matrix ein:
-              </div>
-              <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                {(matrixClue || '7 8 2 6').split(' ').map((d, i) => (
-                  <span key={i} style={{
-                    width: 36, height: 40,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 22, fontFamily: fonts.mono, fontWeight: 'bold',
-                    background: 'rgba(46, 160, 67, 0.15)',
-                    border: `2px solid ${colors.green}`,
-                    borderRadius: 6, color: colors.yellow,
-                  }}>
-                    {d}
-                  </span>
-                ))}
+                {matrixClue || 'C6: 7 - 8 - 2 - 6'}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>

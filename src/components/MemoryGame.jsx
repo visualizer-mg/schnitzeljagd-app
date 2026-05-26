@@ -70,7 +70,7 @@ const CARD_IMAGES = [
   'memory_0016.jpg',
 ];
 
-const MATRIX_CLUE = 'D2: 7, 8, 1, 2';
+const MATRIX_CLUE = 'D2: 7 - 8 - 1 - 2';
 const FLIP_BACK_DELAY = 750;
 const COLS = 4;
 const ROWS = 8;

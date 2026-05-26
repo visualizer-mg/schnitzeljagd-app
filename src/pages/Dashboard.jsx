@@ -15,28 +15,28 @@ import PuzzleGame from '../components/PuzzleGame';
 const PLAYER_PUZZLES = {
   andreas: [
     { id: 'andreas-1', label: 'Klavier / Indiana Jones', chained: true, password: 'indiana jones', taunt: 'Krame, so einfach isses net! Erstmal korrektes Passwort eingeben!' },
-    { id: 'andreas-2', label: 'Elephant Scooter Run', chained: true, password: 'wohnwagen', taunt: 'Erstmal das richtige Passwort eingeben, Krame!', game: 'scooter', matrixClue: '? ? ?' },
+    { id: 'andreas-2', label: 'Elephant Scooter Run', chained: true, password: 'wohnwagen', taunt: 'Erstmal das richtige Passwort eingeben, Krame!', game: 'scooter', matrixClue: 'C4: 3 - 0 - 7 - 2 - 8 - 4 - 1' },
     { id: 'andreas-3', label: 'Rätsel 3', chained: true, password: '' },
   ],
   mark: [
-    { id: 'mark-1', label: 'X-Wing Assault', game: 'xwing', matrixClue: 'KRAFT' },
+    { id: 'mark-1', label: 'X-Wing Assault', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
     { id: 'mark-2', label: 'Rätsel 2' },
     { id: 'mark-3', label: 'Rätsel 3' },
   ],
   ellen: [
-    { id: 'ellen-1', label: 'Käse-Jagd', game: 'cheese', matrixClue: 'KÄSE' },
+    { id: 'ellen-1', label: 'Käse-Jagd', game: 'cheese', matrixClue: 'C1: 3 - 8 - 4 - 6 - 1 - 2' },
   ],
   theresa: [
-    { id: 'theresa-1', label: 'Himmelsritt', game: 'horse', matrixClue: 'FREIHEIT' },
+    { id: 'theresa-1', label: 'Himmelsritt', game: 'horse', matrixClue: 'C6: 7 - 8 - 2 - 6' },
   ],
   beate: [
-    { id: 'beate-1', label: 'Braune Soße Kochen', game: 'braune-sosse', matrixClue: '???' },
+    { id: 'beate-1', label: 'Braune Soße Memory', game: 'braune-sosse', matrixClue: 'C5: 2 - 6 - 5 - 4 - 1 - 3' },
   ],
   andrea: [
-    { id: 'andrea-1', label: 'Memory Challenge', game: 'memory', matrixClue: 'D2: 7, 8, 1, 2' },
+    { id: 'andrea-1', label: 'Memory-Spiel', game: 'memory', matrixClue: 'D2: 7 - 8 - 1 - 2' },
   ],
   rowena: [
-    { id: 'rowena-1', label: 'Foto-Puzzle', game: 'puzzle', matrixClue: 'C11: 2, 0, 5, 9, 3' },
+    { id: 'rowena-1', label: 'Foto-Puzzle', game: 'puzzle', matrixClue: 'C11: 2 - 0 - 5 - 9 - 3' },
   ],
 };
 
@@ -157,25 +157,25 @@ export default function Dashboard({ player, onLogout }) {
         </button>
         <div style={{ flex: 1, overflow: 'auto' }}>
           {activeGame.game === 'xwing' && (
-            <XWingGame matrixClue="KRAFT" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <XWingGame matrixClue="C10: 5 - 0 - 2 - 8 - 4" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
           {activeGame.game === 'cheese' && (
-            <CheeseGame matrixClue="KÄSE" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <CheeseGame matrixClue="C1: 3 - 8 - 4 - 6 - 1 - 2" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
           {activeGame.game === 'horse' && (
-            <HorseGame matrixClue="FREIHEIT" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <HorseGame matrixClue="C6: 7 - 8 - 2 - 6" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
           {activeGame.game === 'scooter' && (
-            <ScooterGame matrixClue="? ? ?" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <ScooterGame matrixClue="C4: 3 - 0 - 7 - 2 - 8 - 4 - 1" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
           {activeGame.game === 'braune-sosse' && (
-            <BrauneSosseGame matrixClue="???" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <BrauneSosseGame matrixClue="C5: 2 - 6 - 5 - 4 - 1 - 3" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
           {activeGame.game === 'memory' && (
-            <MemoryGame matrixClue="D2: 7, 8, 1, 2" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <MemoryGame matrixClue="D2: 7 - 8 - 1 - 2" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
           {activeGame.game === 'puzzle' && (
-            <PuzzleGame matrixClue="C11: 2, 0, 5, 9, 3" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <PuzzleGame matrixClue="C11: 2 - 0 - 5 - 9 - 3" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
         </div>
       </div>

@@ -1424,17 +1424,18 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             <div style={{
               fontSize: 14,
               color: 'rgba(255,255,255,0.5)',
-              marginBottom: 8,
+              marginBottom: 12, lineHeight: 1.5,
             }}>
-              Dein Matrix-Code:
+              Herzlichen Glückwunsch!<br />Du hast einen Matrix Clue freigeschaltet:
             </div>
             <div style={{
-              fontSize: 32,
-              fontWeight: 800,
+              fontSize: 24,
+              fontWeight: 'bold',
               color: '#fbbf24',
-              letterSpacing: 4,
+              letterSpacing: 2,
+              fontFamily: 'monospace',
             }}>
-              🔑 {matrixClue}
+              {matrixClue || 'C5: 2 - 6 - 5 - 4 - 1 - 3'}
             </div>
           </div>
         </div>

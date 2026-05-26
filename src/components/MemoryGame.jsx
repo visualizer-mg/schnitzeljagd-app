@@ -162,7 +162,7 @@ function Card({ card, isFlipped, isMatched, onClick, gridWidth, gridHeight, high
       }}>
         <div style={{
           position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden',
-          borderRadius: 8,
+          boxSizing: 'border-box', borderRadius: 8,
           background: highlight ? 'linear-gradient(135deg, #3a5a3c 0%, #2a4a2c 50%, #3a5a3c 100%)'
             : 'linear-gradient(135deg, #2a3a5c 0%, #1a2744 50%, #2a3a5c 100%)',
           border: highlight ? '2px solid rgba(126, 231, 135, 0.6)' : '2px solid rgba(108, 182, 255, 0.3)',
@@ -174,7 +174,7 @@ function Card({ card, isFlipped, isMatched, onClick, gridWidth, gridHeight, high
         </div>
         <div style={{
           position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden',
-          transform: 'rotateY(180deg)', borderRadius: 8, overflow: 'hidden',
+          boxSizing: 'border-box', transform: 'rotateY(180deg)', borderRadius: 8, overflow: 'hidden',
           border: isMatched ? '2px solid rgba(126, 231, 135, 0.7)' : '2px solid rgba(108, 182, 255, 0.5)',
           boxShadow: isMatched ? '0 0 12px rgba(126, 231, 135, 0.3)' : '0 2px 8px rgba(0,0,0,0.3)',
         }}>

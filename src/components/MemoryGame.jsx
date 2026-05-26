@@ -12,9 +12,11 @@ import { colors, fonts } from '../theme';
 // ── Sound helpers ──
 const SFX = {
   swipe: './assets/memory-cards/swipe.wav',
-  clicked: './assets/memory-cards/clicked.wav',
+  clicked: './assets/memory-cards/clicked2.mp3',
   eat: './assets/memory-cards/eat.wav',
-  match: './assets/memory-cards/plip_and_plop.wav',
+  match: './assets/memory-cards/plip_and_plop2.mp3',
+  levelUp: './assets/memory-cards/level_complete.wav',
+  winning: './assets/memory-cards/winning.mp3',
   happy: './assets/memory-cards/happy.mp3',
   sneaky: './assets/memory-cards/sneaky_snakes.mp3',
 };
@@ -432,6 +434,8 @@ function SnakeGame({ images, onWin, gridContainerWidth }) {
           snakeRef.current = newSnake;
           setSnakeLen(newSnake.length);
           draw();
+          stopBgMusic();
+          playSound(SFX.winning, 1.0);
           if (onWin) onWin();
           clearInterval(tickRef.current);
           return;
@@ -727,7 +731,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
           setMatched(newMatched);
           setFlipped([]);
           setLocked(false);
-          if (newMatched.size === CARD_IMAGES.length) setGamePhase('transition12');
+          if (newMatched.size === CARD_IMAGES.length) { playSound(SFX.levelUp, 1.0); setGamePhase('transition12'); }
         }, 400);
       } else {
         setTimeout(() => { setFlipped([]); setLocked(false); }, FLIP_BACK_DELAY);
@@ -808,6 +812,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
         const nextRound = simonRound + 1;
         if (nextRound >= SIMON_ROUNDS.length) {
           setSimonPhase('round-win');
+          playSound(SFX.levelUp, 1.0);
           simonTimeoutRef.current = setTimeout(() => setGamePhase('transition23'), 1200);
         } else {
           setSimonPhase('round-win');
@@ -1125,21 +1130,25 @@ export default function MemoryGame({ matrixClue, onWin }) {
           <Celebration />
           <div style={{ fontSize: 24, marginBottom: 6 }}>🎉🧠🐍</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: colors.green, fontFamily: fonts.sans }}>
-            Alle 3 Level gemeistert!
+            Herzlichen Glückwunsch!
           </div>
-          <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, fontFamily: fonts.mono }}>
-            Memory: {moves} Züge · {formatTime(elapsed)}
+          <div style={{ fontSize: 13, color: colors.text, marginTop: 8, lineHeight: 1.6 }}>
+            Du hast einen Matrix Clue freigeschaltet:
           </div>
           <div style={{
-            marginTop: 12, padding: '10px 16px',
-            background: colors.bgSecondary, borderRadius: 8, border: `1px solid ${colors.border}`,
+            marginTop: 12, padding: '14px 16px',
+            background: colors.bgSecondary, borderRadius: 8, border: `1px solid ${colors.accent}`,
+            boxShadow: '0 0 20px rgba(108, 182, 255, 0.15)',
           }}>
             <div style={{ fontSize: 9, color: colors.textSubtle, fontFamily: fonts.mono, marginBottom: 4, letterSpacing: 1 }}>
               MATRIX CLUE
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: colors.accent, fontFamily: fonts.mono, letterSpacing: 2 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: colors.accent, fontFamily: fonts.mono, letterSpacing: 2 }}>
               {clue}
             </div>
+          </div>
+          <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 8, fontFamily: fonts.mono }}>
+            {moves} Züge · {formatTime(elapsed)}
           </div>
         </div>
       )}

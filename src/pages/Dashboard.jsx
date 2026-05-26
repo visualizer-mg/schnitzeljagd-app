@@ -8,6 +8,7 @@ import ScooterGame from '../components/ScooterGame';
 import BrauneSosseGame from '../components/BrauneSosseGame';
 import MemoryGame from '../components/MemoryGame';
 import PuzzleGame from '../components/PuzzleGame';
+import PeriodensystemGame from '../components/PeriodensystemGame';
 
 // Puzzles per player — first chest = game
 // chained: true → needs password before chest can be opened
@@ -20,7 +21,7 @@ const PLAYER_PUZZLES = {
   ],
   mark: [
     { id: 'mark-1', label: 'Rätsel 1', solvedLabel: 'X-Wing Assault', chained: true, password: 'star wars', taunt: 'Mark, so einfach isses net! Erstmal korrektes Passwort eingeben!', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
-    { id: 'mark-2', label: 'Rätsel 2', solvedLabel: 'Periodensystem', chained: true, password: '', taunt: 'Mark, erstmal das richtige Passwort finden!' },
+    { id: 'mark-2', label: 'Rätsel 2', solvedLabel: 'Periodensystem', game: 'periodensystem' },
   ],
   ellen: [
     { id: 'ellen-1', label: 'Käse-Jagd', game: 'cheese', matrixClue: 'C1: 3 - 8 - 4 - 6 - 1 - 2' },
@@ -175,6 +176,9 @@ export default function Dashboard({ player, onLogout }) {
           )}
           {activeGame.game === 'puzzle' && (
             <PuzzleGame matrixClue="C11: 2 - 0 - 5 - 9 - 3" onWin={() => handleGameWin(activeGame.puzzleId)} />
+          )}
+          {activeGame.game === 'periodensystem' && (
+            <PeriodensystemGame matrixClue="C2: 4 - 7 - 1 - 9 - 3" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
         </div>
       </div>

@@ -144,8 +144,8 @@ function Celebration() {
 
 // ── Single Card (Level 1 + 2) ──
 function Card({ card, isFlipped, isMatched, onClick, gridWidth, gridHeight, highlight }) {
-  const cardByWidth = Math.floor((gridWidth - (COLS - 1) * 4) / COLS);
-  const cardByHeight = gridHeight ? Math.floor((gridHeight - (ROWS - 1) * 4) / ROWS) : cardByWidth;
+  const cardByWidth = Math.floor(gridWidth / COLS);
+  const cardByHeight = gridHeight ? Math.floor(gridHeight / ROWS) : cardByWidth;
   const cardSize = Math.min(cardByWidth, cardByHeight);
   return (
     <div onClick={onClick} style={{
@@ -532,7 +532,7 @@ function SnakeGame({ images, onWin, gridContainerWidth }) {
     >
       {/* Stats */}
       <div style={{
-        display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: 400,
+        display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: 340,
         marginBottom: 8, padding: '6px 12px',
         background: colors.bgSecondary, borderRadius: 8, border: `1px solid ${colors.border}`,
       }}>
@@ -918,7 +918,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
       {gamePhase === 'memory' && (
         <>
           <div style={{
-            display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: 400,
+            display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: 340,
             marginBottom: 10, padding: '6px 12px',
             background: colors.bgSecondary, borderRadius: 8, border: `1px solid ${colors.border}`,
           }}>
@@ -940,8 +940,8 @@ export default function MemoryGame({ matrixClue, onWin }) {
             </div>
           </div>
           <div ref={gridRef} style={{
-            display: 'grid', gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 4,
-            width: '100%', maxWidth: 400, position: 'relative',
+            display: 'grid', gridTemplateColumns: `repeat(${COLS}, auto)`, gap: 0,
+            justifyContent: 'center', position: 'relative',
           }}>
             {cards.map((card, index) => {
               const state = getCardState(index);
@@ -960,7 +960,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
         <>
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            width: '100%', maxWidth: 400, marginBottom: 10, padding: '8px 12px',
+            width: '100%', maxWidth: 340, marginBottom: 10, padding: '8px 12px',
             background: colors.bgSecondary, borderRadius: 8, border: `1px solid ${colors.border}`,
           }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -997,8 +997,8 @@ export default function MemoryGame({ matrixClue, onWin }) {
             }}>🔁 Nochmal</button>
           </div>
           <div ref={gridRef} style={{
-            display: 'grid', gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 4,
-            width: '100%', maxWidth: 400, position: 'relative',
+            display: 'grid', gridTemplateColumns: `repeat(${COLS}, auto)`, gap: 0,
+            justifyContent: 'center', position: 'relative',
           }}>
             {cards.map((card, index) => {
               const state = getCardState(index);
@@ -1120,7 +1120,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
         <div style={{
           marginTop: 16, padding: '16px 24px', position: 'relative',
           background: 'rgba(126, 231, 135, 0.1)', border: `2px solid ${colors.green}`,
-          borderRadius: 12, textAlign: 'center', width: '100%', maxWidth: 400,
+          borderRadius: 12, textAlign: 'center', width: '100%', maxWidth: 340,
         }}>
           <Celebration />
           <div style={{ fontSize: 24, marginBottom: 6 }}>🎉🧠🐍</div>

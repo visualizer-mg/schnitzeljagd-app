@@ -24,6 +24,8 @@ const HEALTH_DROP_INTERVAL = 50;  // every 50 kills
 const HEALTH_SIZE = 20;
 const HEALTH_SPEED = 1.2;
 const MAX_LIVES = 3;
+const BLAST_WALL_SPEED = CANVAS_H / 60; // crosses screen in ~1 sec at 60fps
+const BLAST_WALL_H = 30; // height of the fire wall
 
 // ─── Preload sprites ───
 function loadImg(src) {
@@ -115,6 +117,7 @@ export default function XWingGame({ onWin, matrixClue }) {
   const [gameState, setGameState] = useState('start');
   const [lives, setLives] = useState(3);
   const [imgsLoaded, setImgsLoaded] = useState(false);
+  const [blastAvailable, setBlastAvailable] = useState(true);
 
   // Preload images once
   useEffect(() => {
@@ -158,6 +161,8 @@ export default function XWingGame({ onWin, matrixClue }) {
       tieLasers: [],
       nextHealthAt: HEALTH_DROP_INTERVAL,
       invincibleUntil: 0, // brief invincibility after hit
+      blastWall: null, // { y } — active fire wall moving upward
+      blastUsed: false,
     };
   }, []);
 
@@ -166,6 +171,7 @@ export default function XWingGame({ onWin, matrixClue }) {
     setScore(0);
     setLives(3);
     setGameState('playing');
+    setBlastAvailable(true);
     startMusic();
   }, [initGame]);
 
@@ -180,7 +186,6 @@ export default function XWingGame({ onWin, matrixClue }) {
 
     // ─── Input handlers ───
     const onMove = (e) => {
-      if (e.cancelable) e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const scaleX = CANVAS_W / rect.width;
       const scaleY = CANVAS_H / rect.height;
@@ -191,8 +196,8 @@ export default function XWingGame({ onWin, matrixClue }) {
     };
 
     canvas.addEventListener('mousemove', onMove);
-    canvas.addEventListener('touchmove', onMove, { passive: false });
-    canvas.addEventListener('touchstart', onMove, { passive: false });
+    canvas.addEventListener('touchmove', onMove, { passive: true });
+    canvas.addEventListener('touchstart', onMove, { passive: true });
 
     // ─── Game loop ───
     const loop = () => {
@@ -361,6 +366,38 @@ export default function XWingGame({ onWin, matrixClue }) {
       // ─── Update explosions ───
       g.explosions = g.explosions.filter((e) => now - e.start < EXPLOSION_DURATION);
 
+      // ─── Update blast wall ───
+      if (g.blastWall) {
+        g.blastWall.y -= BLAST_WALL_SPEED;
+        // Destroy all TIEs the wall passes through
+        g.ties = g.ties.filter((t) => {
+          if (t.y >= g.blastWall.y - BLAST_WALL_H / 2 && t.y <= g.blastWall.y + BLAST_WALL_H) {
+            g.explosions.push({ x: t.x, y: t.y, start: now });
+            g.score++;
+            setScore(g.score);
+            if (g.score >= g.nextHealthAt) {
+              g.healthDrops.push({ x: t.x, y: t.y });
+              g.nextHealthAt += HEALTH_DROP_INTERVAL;
+            }
+            if (g.score >= KILL_TARGET) {
+              g.running = false;
+              stopMusic();
+              setGameState('won');
+            }
+            return false;
+          }
+          return true;
+        });
+        // Also destroy TIE lasers in the wall's path
+        g.tieLasers = g.tieLasers.filter((l) => {
+          return !(l.y >= g.blastWall.y - BLAST_WALL_H / 2 && l.y <= g.blastWall.y + BLAST_WALL_H);
+        });
+        // Remove wall when off screen
+        if (g.blastWall.y + BLAST_WALL_H < 0) {
+          g.blastWall = null;
+        }
+      }
+
       // ─── Update stars ───
       g.stars.forEach((s) => {
         s.y += s.speed;
@@ -386,6 +423,28 @@ export default function XWingGame({ onWin, matrixClue }) {
       g.lasers.forEach((l) => {
         ctx.fillRect(l.x - LASER_W / 2, l.y - LASER_H / 2, LASER_W, LASER_H);
       });
+
+      // Blast wall
+      if (g.blastWall) {
+        const wy = g.blastWall.y;
+        const gradient = ctx.createLinearGradient(0, wy - BLAST_WALL_H, 0, wy + BLAST_WALL_H);
+        gradient.addColorStop(0, 'rgba(255, 100, 50, 0)');
+        gradient.addColorStop(0.3, 'rgba(255, 180, 50, 0.9)');
+        gradient.addColorStop(0.5, 'rgba(255, 255, 100, 1)');
+        gradient.addColorStop(0.7, 'rgba(255, 180, 50, 0.9)');
+        gradient.addColorStop(1, 'rgba(255, 100, 50, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, wy - BLAST_WALL_H, CANVAS_W, BLAST_WALL_H * 2);
+        // Bright core line
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillRect(0, wy - 1, CANVAS_W, 2);
+        // Glow
+        ctx.shadowColor = '#FFA500';
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = 'rgba(255, 200, 50, 0.4)';
+        ctx.fillRect(0, wy - 2, CANVAS_W, 4);
+        ctx.shadowBlur = 0;
+      }
 
       // Red lasers (TIE)
       ctx.fillStyle = '#F47067';
@@ -533,6 +592,44 @@ export default function XWingGame({ onWin, matrixClue }) {
           }}
         />
 
+        {/* ─── Blast Wall Button ─── */}
+        {gameState === 'playing' && (
+          <button
+            onClick={() => {
+              const g = gameRef.current;
+              if (g && !g.blastUsed && !g.blastWall) {
+                g.blastWall = { y: g.player.y - 30 };
+                g.blastUsed = true;
+                setBlastAvailable(false);
+              }
+            }}
+            style={{
+              position: 'absolute',
+              bottom: 12,
+              left: 12,
+              zIndex: 20,
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              border: blastAvailable ? '2px solid rgba(255, 166, 87, 0.8)' : '2px solid rgba(100,100,100,0.3)',
+              background: blastAvailable ? 'rgba(255, 100, 50, 0.25)' : 'rgba(50,50,50,0.3)',
+              color: blastAvailable ? '#FFA657' : '#555',
+              fontSize: 24,
+              cursor: blastAvailable ? 'pointer' : 'default',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: blastAvailable ? 1 : 0.4,
+              boxShadow: blastAvailable ? '0 0 12px rgba(255, 166, 87, 0.4)' : 'none',
+              transition: 'all 0.3s ease',
+              pointerEvents: blastAvailable ? 'auto' : 'none',
+            }}
+            title="Blaster Wall — einmalig!"
+          >
+            🚀
+          </button>
+        )}
+
         {/* ─── Start Screen ─── */}
         {gameState === 'start' && overlay(
           <>
@@ -604,7 +701,7 @@ export default function XWingGame({ onWin, matrixClue }) {
                 ★ DEIN MATRIX-CODE ★
               </div>
               <div style={{
-                fontFamily: fonts.mono, fontSize: 12, color: colors.textMuted,
+                fontFamily: fonts.mono, fontSize: 12, color: colors.textSecondary,
                 marginBottom: 8,
               }}>
                 Trage diese Zahlen in Clue <span style={{ color: colors.orange, fontWeight: 'bold' }}>C2</span> der Matrix ein:
@@ -618,9 +715,7 @@ export default function XWingGame({ onWin, matrixClue }) {
                     background: 'rgba(46, 160, 67, 0.15)',
                     border: `2px solid ${colors.green}`,
                     borderRadius: 6, color: colors.yellow,
-                  }}>
-                    {d}
-                  </span>
+                  }}>{d}</span>
                 ))}
               </div>
             </div>
@@ -638,7 +733,7 @@ export default function XWingGame({ onWin, matrixClue }) {
               </button>
               {onWin && (
                 <button
-                  onClick={() => onWin(matrixClue || '5 7 1 9 6')}
+                  onClick={() => onWin(matrixClue)}
                   style={{
                     fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
                     color: '#fff', background: colors.greenDark,

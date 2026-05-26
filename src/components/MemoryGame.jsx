@@ -143,8 +143,10 @@ function Celebration() {
 }
 
 // ── Single Card (Level 1 + 2) ──
-function Card({ card, isFlipped, isMatched, onClick, gridWidth, highlight }) {
-  const cardSize = Math.floor((gridWidth - (COLS - 1) * 6) / COLS);
+function Card({ card, isFlipped, isMatched, onClick, gridWidth, gridHeight, highlight }) {
+  const cardByWidth = Math.floor((gridWidth - (COLS - 1) * 4) / COLS);
+  const cardByHeight = gridHeight ? Math.floor((gridHeight - (ROWS - 1) * 4) / ROWS) : cardByWidth;
+  const cardSize = Math.min(cardByWidth, cardByHeight);
   return (
     <div onClick={onClick} style={{
       width: cardSize, height: cardSize, perspective: 600,
@@ -647,6 +649,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
   const [elapsed, setElapsed] = useState(0);
   const gridRef = useRef(null);
   const [gridWidth, setGridWidth] = useState(340);
+  const [gridHeight, setGridHeight] = useState(600);
   const timerRef = useRef(null);
 
   // ── Level 2: Simon Says ──
@@ -674,12 +677,15 @@ export default function MemoryGame({ matrixClue, onWin }) {
     }
   }, [gamePhase]);
 
-  // Grid measurement
+  // Grid measurement — fit cards to available viewport height
   useEffect(() => {
     const measure = () => {
       if (gridRef.current) {
         setGridWidth(Math.min(gridRef.current.getBoundingClientRect().width, 400));
       }
+      // Available height = viewport minus header (~50px), stats bar (~50px), title (~50px), padding (~40px), reset button (~50px)
+      const availH = window.innerHeight - 240;
+      setGridHeight(Math.max(availH, 200));
     };
     measure();
     window.addEventListener('resize', measure);
@@ -877,7 +883,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      padding: '16px 8px', fontFamily: fonts.sans, position: 'relative',
+      padding: '8px 8px', fontFamily: fonts.sans, position: 'relative',
       maxWidth: 440, margin: '0 auto',
     }}>
       <style>{`
@@ -934,7 +940,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
             </div>
           </div>
           <div ref={gridRef} style={{
-            display: 'grid', gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 6,
+            display: 'grid', gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 4,
             width: '100%', maxWidth: 400, position: 'relative',
           }}>
             {cards.map((card, index) => {
@@ -942,7 +948,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
               return (
                 <Card key={card.id} card={card} isFlipped={state.isFlipped}
                   isMatched={state.isMatched} highlight={state.highlight}
-                  onClick={() => handleCardClick(index)} gridWidth={gridWidth} />
+                  onClick={() => handleCardClick(index)} gridWidth={gridWidth} gridHeight={gridHeight} />
               );
             })}
           </div>
@@ -991,7 +997,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
             }}>🔁 Nochmal</button>
           </div>
           <div ref={gridRef} style={{
-            display: 'grid', gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 6,
+            display: 'grid', gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 4,
             width: '100%', maxWidth: 400, position: 'relative',
           }}>
             {cards.map((card, index) => {
@@ -1005,7 +1011,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
                   animation: simonWrongCard === index ? 'wrongShake 0.4s ease' : 'none',
                 }}>
                   <Card card={card} isFlipped={state.isFlipped} isMatched={state.isMatched}
-                    highlight={state.highlight} onClick={() => handleSimonClick(index)} gridWidth={gridWidth} />
+                    highlight={state.highlight} onClick={() => handleSimonClick(index)} gridWidth={gridWidth} gridHeight={gridHeight} />
                 </div>
               );
             })}

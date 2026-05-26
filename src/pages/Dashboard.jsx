@@ -19,8 +19,8 @@ const PLAYER_PUZZLES = {
     { id: 'andreas-3', label: 'Rätsel 3', chained: true, password: '' },
   ],
   mark: [
-    { id: 'mark-1', label: 'X-Wing Assault', chained: true, password: 'star wars', taunt: 'Mark, so einfach isses net! Erstmal korrektes Passwort eingeben!', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
-    { id: 'mark-2', label: 'Periodensystem', chained: true, password: '', taunt: 'Mark, erstmal das richtige Passwort finden!' },
+    { id: 'mark-1', label: 'Rätsel 1', solvedLabel: 'X-Wing Assault', chained: true, password: 'star wars', taunt: 'Mark, so einfach isses net! Erstmal korrektes Passwort eingeben!', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
+    { id: 'mark-2', label: 'Rätsel 2', solvedLabel: 'Periodensystem', chained: true, password: '', taunt: 'Mark, erstmal das richtige Passwort finden!' },
   ],
   ellen: [
     { id: 'ellen-1', label: 'Käse-Jagd', game: 'cheese', matrixClue: 'C1: 3 - 8 - 4 - 6 - 1 - 2' },
@@ -311,7 +311,7 @@ export default function Dashboard({ player, onLogout }) {
                   return (
                     <TreasureChest
                       key={puzzle.id}
-                      label={puzzle.label}
+                      label={(isSolved && puzzle.solvedLabel) ? puzzle.solvedLabel : puzzle.label}
                       locked={isLocked}
                       chained={alreadyOpened ? false : (puzzle.chained || false)}
                       password={puzzle.password || ''}

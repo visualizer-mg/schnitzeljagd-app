@@ -93,6 +93,19 @@ function drawHealthPickup(ctx, x, y, time) {
   ctx.restore();
 }
 
+// ── Background music ──
+let bgMusic = null;
+function startMusic() {
+  if (bgMusic && !bgMusic.paused) return;
+  bgMusic = new Audio('./assets/starwars.mp3');
+  bgMusic.loop = true;
+  bgMusic.volume = 0.5;
+  bgMusic.play().catch(() => {});
+}
+function stopMusic() {
+  if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; bgMusic = null; }
+}
+
 // ─── Main Component ───
 export default function XWingGame({ onWin, matrixClue }) {
   const canvasRef = useRef(null);
@@ -153,6 +166,7 @@ export default function XWingGame({ onWin, matrixClue }) {
     setScore(0);
     setLives(3);
     setGameState('playing');
+    startMusic();
   }, [initGame]);
 
   useEffect(() => {
@@ -292,6 +306,7 @@ export default function XWingGame({ onWin, matrixClue }) {
             }
             if (g.score >= KILL_TARGET) {
               g.running = false;
+              stopMusic();
               setGameState('won');
             }
             return false;
@@ -321,7 +336,7 @@ export default function XWingGame({ onWin, matrixClue }) {
             setLives(g.lives);
             g.invincibleUntil = now + 800; // brief invincibility
             g.explosions.push({ x: g.player.x, y: g.player.y, start: now });
-            if (g.lives <= 0) { g.running = false; setGameState('lost'); }
+            if (g.lives <= 0) { g.running = false; stopMusic(); setGameState('lost'); }
             return false;
           }
           return true;
@@ -336,7 +351,7 @@ export default function XWingGame({ onWin, matrixClue }) {
             setLives(g.lives);
             g.invincibleUntil = now + 800;
             g.explosions.push({ x: t.x, y: t.y, start: now });
-            if (g.lives <= 0) { g.running = false; setGameState('lost'); }
+            if (g.lives <= 0) { g.running = false; stopMusic(); setGameState('lost'); }
             return false;
           }
           return true;
@@ -486,6 +501,7 @@ export default function XWingGame({ onWin, matrixClue }) {
       canvas.removeEventListener('touchmove', onMove);
       canvas.removeEventListener('touchstart', onMove);
       if (g) g.running = false;
+      stopMusic();
     };
   }, [gameState]);
 

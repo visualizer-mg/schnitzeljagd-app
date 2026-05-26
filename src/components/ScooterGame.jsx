@@ -863,7 +863,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
             fontSize: 24, fontFamily: fonts.mono, fontWeight: 'bold',
             color: colors.yellow, letterSpacing: 2,
           }}>
-            {matrixClue || 'C4: 3 - 0 - 7 - 2 - 8 - 4 - 1'}
+            {matrixClue || 'D5: 8 - 6 - 3 - 0'}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>

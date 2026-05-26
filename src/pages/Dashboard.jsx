@@ -6,6 +6,7 @@ import CheeseGame from '../components/CheeseGame';
 import HorseGame from '../components/HorseGame';
 import ScooterGame from '../components/ScooterGame';
 import BrauneSosseGame from '../components/BrauneSosseGame';
+import MemoryGame from '../components/MemoryGame';
 
 // Puzzles per player — first chest = game
 // chained: true → needs password before chest can be opened
@@ -29,6 +30,9 @@ const PLAYER_PUZZLES = {
   ],
   beate: [
     { id: 'beate-1', label: 'Braune Soße Kochen', game: 'braune-sosse', matrixClue: '???' },
+  ],
+  andrea: [
+    { id: 'andrea-1', label: 'Memory Challenge', game: 'memory', matrixClue: 'D2: 7, 8, 1, 2' },
   ],
 };
 
@@ -162,6 +166,9 @@ export default function Dashboard({ player, onLogout }) {
           )}
           {activeGame.game === 'braune-sosse' && (
             <BrauneSosseGame matrixClue="???" onWin={() => handleGameWin(activeGame.puzzleId)} />
+          )}
+          {activeGame.game === 'memory' && (
+            <MemoryGame matrixClue="D2: 7, 8, 1, 2" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
         </div>
       </div>

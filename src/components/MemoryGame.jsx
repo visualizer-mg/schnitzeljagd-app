@@ -146,7 +146,7 @@ function Celebration() {
 
 // ── Single Card (Level 1 + 2) ──
 function Card({ card, isFlipped, isMatched, onClick, gridWidth, gridHeight, highlight }) {
-  const GAP = 3;
+  const GAP = 6;
   const cardByWidth = Math.floor((gridWidth - (COLS - 1) * GAP) / COLS);
   const cardByHeight = gridHeight ? Math.floor((gridHeight - (ROWS - 1) * GAP) / ROWS) : cardByWidth;
   const cardSize = Math.min(cardByWidth, cardByHeight);
@@ -946,7 +946,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
             </div>
           </div>
           <div ref={gridRef} style={{
-            display: 'grid', gridTemplateColumns: `repeat(${COLS}, auto)`, gap: 3,
+            display: 'grid', gridTemplateColumns: `repeat(${COLS}, auto)`, gap: 6,
             justifyContent: 'center', position: 'relative',
           }}>
             {cards.map((card, index) => {
@@ -1003,7 +1003,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
             }}>🔁 Nochmal</button>
           </div>
           <div ref={gridRef} style={{
-            display: 'grid', gridTemplateColumns: `repeat(${COLS}, auto)`, gap: 3,
+            display: 'grid', gridTemplateColumns: `repeat(${COLS}, auto)`, gap: 6,
             justifyContent: 'center', position: 'relative',
           }}>
             {cards.map((card, index) => {

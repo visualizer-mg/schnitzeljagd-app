@@ -19,7 +19,7 @@ const PLAYER_PUZZLES = {
     { id: 'andreas-3', label: 'Rätsel 3', chained: true, password: '' },
   ],
   mark: [
-    { id: 'mark-1', label: 'X-Wing Assault', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
+    { id: 'mark-1', label: 'X-Wing Assault', chained: true, password: 'star wars', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
     { id: 'mark-2', label: 'Rätsel 2' },
     { id: 'mark-3', label: 'Rätsel 3' },
   ],

@@ -10,9 +10,8 @@ const TURTLES = [
   { name: 'Raphael',      head: '/assets/turtles/raphael.png',      weapon: '/assets/turtles/twinsai.png',   weaponName: 'Twin Sai' },
 ];
 
-const SFX_SWAP = '/assets/error-buzz.mp3';
 const SFX_WIN = '/assets/horse-sounds/winning.mp3';
-const SFX_CORRECT = '/assets/chest-open.wav';
+const MUSIC_BG = '/assets/turtles/turtles.mpeg';
 
 // Fisher-Yates shuffle
 function shuffle(arr) {
@@ -44,22 +43,36 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
   const [weaponOrder, setWeaponOrder] = useState(() => shuffleRow());
   const [weaponNameOrder, setWeaponNameOrder] = useState(() => shuffleRow());
   const [selected, setSelected] = useState(null); // { row, index }
-  const [solvedRows, setSolvedRows] = useState(new Set());
   const [flash, setFlash] = useState(null); // { row, indices: [i, j] }
   const hasWonRef = useRef(false);
+  const musicRef = useRef(null);
+
+  // ─── Music ───
+  const startMusic = () => {
+    try {
+      if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
+      const m = new Audio(MUSIC_BG); m.loop = true; m.volume = 0.4;
+      m.play().catch(() => {}); musicRef.current = m;
+    } catch (e) {}
+  };
+  const stopMusic = () => {
+    if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
+  };
+
+  // Start music on mount (intro screen)
+  useEffect(() => {
+    if (!showResult) startMusic();
+    return () => stopMusic();
+  }, []);
 
   // Check if all rows are correct
   useEffect(() => {
     if (phase !== 'playing' || hasWonRef.current) return;
 
     const rows = [nameOrder, headOrder, weaponOrder, weaponNameOrder];
-    const newSolved = new Set();
-    rows.forEach((row, ri) => {
-      if (row.every((v, i) => v === i)) newSolved.add(ri);
-    });
-    setSolvedRows(newSolved);
+    const allCorrect = rows.every(row => row.every((v, i) => v === i));
 
-    if (newSolved.size === 4) {
+    if (allCorrect) {
       hasWonRef.current = true;
       playSound(SFX_WIN, 0.6);
       if (onWin) onWin();
@@ -69,7 +82,6 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
 
   const handleTap = (row, index) => {
     if (phase !== 'playing') return;
-    if (solvedRows.has(row)) return; // row already correct
 
     if (!selected) {
       setSelected({ row, index });
@@ -88,11 +100,6 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
         setFlash({ row, indices: [selected.index, index] });
         setTimeout(() => setFlash(null), 300);
 
-        // Check if this row is now correct
-        if (newOrder.every((v, i) => v === i)) {
-          playSound(SFX_CORRECT, 0.4);
-        }
-
         setSelected(null);
       }
     } else {
@@ -107,14 +114,12 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
     setWeaponOrder(shuffleRow());
     setWeaponNameOrder(shuffleRow());
     setSelected(null);
-    setSolvedRows(new Set());
     hasWonRef.current = false;
     setPhase('playing');
   };
 
   const isSelected = (row, index) => selected && selected.row === row && selected.index === index;
   const isFlashing = (row, index) => flash && flash.row === row && flash.indices.includes(index);
-  const isRowSolved = (row) => solvedRows.has(row);
 
   const cellStyle = (row, index) => ({
     flex: 1,
@@ -124,21 +129,16 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
     justifyContent: 'center',
     padding: 3,
     borderRadius: 8,
-    cursor: isRowSolved(row) ? 'default' : 'pointer',
+    cursor: 'pointer',
     border: isSelected(row, index)
       ? '2px solid #4ade80'
-      : isRowSolved(row)
-        ? '2px solid rgba(74, 222, 128, 0.3)'
-        : '2px solid rgba(255,255,255,0.1)',
+      : '2px solid rgba(255,255,255,0.1)',
     background: isFlashing(row, index)
       ? 'rgba(74, 222, 128, 0.2)'
       : isSelected(row, index)
         ? 'rgba(74, 222, 128, 0.1)'
-        : isRowSolved(row)
-          ? 'rgba(74, 222, 128, 0.05)'
-          : 'rgba(255,255,255,0.03)',
+        : 'rgba(255,255,255,0.03)',
     transition: 'all 0.2s ease',
-    opacity: isRowSolved(row) ? 0.7 : 1,
     minHeight: 44,
   });
 
@@ -150,7 +150,11 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
         justifyContent: 'center', height: '100%', background: colors.bgPrimary,
         padding: 20, boxSizing: 'border-box',
       }}>
-        <div style={{ fontSize: 48, marginBottom: 8 }}>🐢</div>
+        <img
+          src="/assets/turtles/ninjaturtles.png"
+          alt="Ninja Turtles"
+          style={{ width: 180, height: 'auto', marginBottom: 16 }}
+        />
         <div style={{
           fontFamily: fonts.mono, fontSize: 22, color: '#4CAF50',
           fontWeight: 'bold', letterSpacing: 2, marginBottom: 4,
@@ -167,10 +171,9 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
           fontFamily: fonts.mono, fontSize: 13, color: colors.textMuted,
           textAlign: 'center', lineHeight: 1.8, maxWidth: 340, marginBottom: 24,
         }}>
-          Jede Zeile ist durcheinander!<br />
-          Tippe zwei Elemente in derselben Zeile an, um sie zu tauschen.<br /><br />
-          Ordne alle Zeilen richtig zu:<br />
-          <span style={{ color: '#4CAF50' }}>Name → Kopf → Waffe → Waffenname</span>
+          Alle Turtles sind durcheinander!<br />
+          Tippe zwei Elemente in derselben Zeile an um sie zu tauschen.<br /><br />
+          <span style={{ color: '#4CAF50' }}>Ordne alle Turtles richtig zu!</span>
         </div>
         <button
           onClick={startGame}
@@ -193,7 +196,7 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', height: '100%', background: colors.bgPrimary,
-        padding: 20, boxSizing: 'border-box',
+        padding: 20, boxSizing: 'border-box', overflowY: 'auto',
       }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>🏆</div>
         <div style={{
@@ -204,25 +207,16 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
         </div>
         <div style={{
           fontFamily: fonts.mono, fontSize: 'clamp(12px, 3.5vw, 14px)', color: colors.textMuted,
-          textAlign: 'center', lineHeight: 1.7, maxWidth: 320, marginBottom: 20,
+          textAlign: 'center', lineHeight: 1.8, maxWidth: 340, marginBottom: 20,
           padding: '0 12px',
         }}>
           Alle Turtles richtig zugeordnet! 🐢✨<br /><br />
-          Du kennst deine Ninjas!
+          Du kennst deine Ninjas!<br /><br />
+          <span style={{ color: colors.yellow }}>Aber damit hast du leider immer noch keinen Matrix Clue freigeschaltet... 😎</span><br /><br />
+          <span style={{ color: colors.textSubtle, fontStyle: 'italic' }}>
+            Da die Turtles bekanntlich ja in der Kanalisation leben, solltest du vielleicht auch mal ein Stockwerk tiefer gehen und dich in der Werkstatt umschauen... Es könnte gut sein, dass du den Matrix-Clue dort findest...
+          </span>
         </div>
-        {matrixClue && (
-          <div style={{
-            background: `${colors.green}15`, border: `1px solid ${colors.green}40`,
-            borderRadius: 8, padding: '12px 24px', marginBottom: 20, textAlign: 'center',
-          }}>
-            <div style={{ fontFamily: fonts.mono, fontSize: 11, color: colors.textSubtle, marginBottom: 6 }}>
-              Matrix Clue:
-            </div>
-            <div style={{ fontFamily: fonts.mono, fontSize: 18, fontWeight: 'bold', color: colors.yellow, letterSpacing: 2, whiteSpace: 'nowrap' }}>
-              {matrixClue}
-            </div>
-          </div>
-        )}
         <div style={{ display: 'flex', gap: 12 }}>
           <button
             onClick={startGame}
@@ -237,7 +231,7 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
           </button>
           {onBack && (
             <button
-              onClick={() => { if (onBack) onBack(); }}
+              onClick={() => { stopMusic(); if (onBack) onBack(); }}
               style={{
                 fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
                 color: '#fff', background: colors.greenDark,
@@ -254,13 +248,11 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
   }
 
   // ─── Playing Screen ───
-  const rowLabel = (text, rowIdx) => (
+  const rowLabel = (text) => (
     <div style={{
-      fontFamily: fonts.mono, fontSize: 9, color: isRowSolved(rowIdx) ? '#4ade80' : colors.textSubtle,
+      fontFamily: fonts.mono, fontSize: 9, color: colors.textSubtle,
       textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, marginTop: 8,
-      display: 'flex', alignItems: 'center', gap: 6,
     }}>
-      {isRowSolved(rowIdx) && <span>✓</span>}
       {text}
     </div>
   );
@@ -280,20 +272,13 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
         🐢 TURTLE MATCH
       </div>
       <div style={{
-        fontFamily: fonts.mono, fontSize: 9, color: colors.textSubtle, marginBottom: 6,
+        fontFamily: fonts.mono, fontSize: 9, color: colors.textSubtle, marginBottom: 10,
       }}>
         Tippe 2 in gleicher Zeile → Tauschen
       </div>
 
-      {/* Progress */}
-      <div style={{
-        fontFamily: fonts.mono, fontSize: 10, color: colors.textMuted, marginBottom: 8,
-      }}>
-        {solvedRows.size}/4 Zeilen richtig
-      </div>
-
       {/* Row 1: Names */}
-      {rowLabel('Namen', 0)}
+      {rowLabel('Namen')}
       <div style={{ display: 'flex', gap: 4, width: '100%', maxWidth: 400 }}>
         {nameOrder.map((ti, i) => (
           <div key={`name-${i}`} style={cellStyle(0, i)} onClick={() => handleTap(0, i)}>
@@ -309,7 +294,7 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
       </div>
 
       {/* Row 2: Heads */}
-      {rowLabel('Köpfe', 1)}
+      {rowLabel('Köpfe')}
       <div style={{ display: 'flex', gap: 4, width: '100%', maxWidth: 400 }}>
         {headOrder.map((ti, i) => (
           <div key={`head-${i}`} style={cellStyle(1, i)} onClick={() => handleTap(1, i)}>
@@ -323,7 +308,7 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
       </div>
 
       {/* Row 3: Weapons */}
-      {rowLabel('Waffen', 2)}
+      {rowLabel('Waffen')}
       <div style={{ display: 'flex', gap: 4, width: '100%', maxWidth: 400, alignItems: 'center' }}>
         {weaponOrder.map((ti, i) => (
           <div key={`weapon-${i}`} style={{ ...cellStyle(2, i), minHeight: 80 }} onClick={() => handleTap(2, i)}>
@@ -337,7 +322,7 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
       </div>
 
       {/* Row 4: Weapon Names */}
-      {rowLabel('Waffennamen', 3)}
+      {rowLabel('Waffennamen')}
       <div style={{ display: 'flex', gap: 4, width: '100%', maxWidth: 400 }}>
         {weaponNameOrder.map((ti, i) => (
           <div key={`wname-${i}`} style={cellStyle(3, i)} onClick={() => handleTap(3, i)}>

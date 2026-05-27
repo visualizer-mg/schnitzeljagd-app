@@ -4,14 +4,13 @@ import { colors, fonts } from '../theme';
 // ─── Base strokes (parts of T, A, X, i) — centered with good padding ───
 // Canvas logical size: 350 x 400
 const BASE_STROKES = [
-  // "7" shape — top bar of T + left leg of A
-  { points: [{ x: 50, y: 140 }, { x: 170, y: 140 }, { x: 100, y: 320 }], width: 7 },
+  // "7" shape — top bar of T + left leg of A (shifted left so bottom aligns with A's right leg)
+  { points: [{ x: 35, y: 140 }, { x: 155, y: 140 }, { x: 85, y: 320 }], width: 7 },
   // "V" shape — right leg of A + first diagonal of X
-  { points: [{ x: 160, y: 145 }, { x: 215, y: 320 }, { x: 265, y: 145 }], width: 7 },
-  // "i" stem
-  { points: [{ x: 290, y: 155 }, { x: 290, y: 320 }], width: 6 },
+  { points: [{ x: 155, y: 145 }, { x: 210, y: 320 }, { x: 265, y: 145 }], width: 7 },
+  // "i" stem (same width as other strokes, no dot)
+  { points: [{ x: 290, y: 140 }, { x: 290, y: 320 }], width: 7 },
 ];
-const I_DOT = { x: 290, y: 130, radius: 5 };
 
 const MAX_STROKES = 3;
 const SFX_ERROR = '/assets/error-buzz.mp3';
@@ -48,11 +47,11 @@ function matchZone(info, scale) {
   const minLen = 50 * s;
 
   // Zone T: vertical stroke in left area
-  if (info.h > minLen && info.h > info.w * 1.5 && info.cx < 150 * s && info.cx > 60 * s) {
+  if (info.h > minLen && info.h > info.w * 1.5 && info.cx < 140 * s && info.cx > 40 * s) {
     return 'T';
   }
   // Zone A: horizontal stroke in middle area
-  if (info.w > minLen * 0.6 && info.w > info.h * 1.3 && info.cy > 190 * s && info.cy < 290 * s && info.cx > 90 * s && info.cx < 220 * s) {
+  if (info.w > minLen * 0.6 && info.w > info.h * 1.3 && info.cy > 190 * s && info.cy < 290 * s && info.cx > 70 * s && info.cx < 210 * s) {
     return 'A';
   }
   // Zone X: diagonal stroke in right area
@@ -168,12 +167,6 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
       });
       ctx.stroke();
     });
-
-    // Dot on i
-    ctx.fillStyle = '#1a1a1a';
-    ctx.beginPath();
-    ctx.arc(I_DOT.x * scale, I_DOT.y * scale, I_DOT.radius * scale, 0, Math.PI * 2);
-    ctx.fill();
 
     // Draw user strokes (red if error feedback active, else black)
     const strokeColor = feedback?.type === 'error' ? '#ff3333' : '#1a1a1a';

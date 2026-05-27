@@ -17,7 +17,7 @@ import TaxiDrawGame from '../components/TaxiDrawGame';
 const PLAYER_PUZZLES = {
   andreas: [
     { id: 'andreas-1', label: 'Klavier / Indiana Jones', chained: true, password: 'indiana jones', taunt: 'Krame, so einfach isses net! Erstmal korrektes Passwort eingeben!' },
-    { id: 'andreas-2', label: 'Elephant Scooter Run', chained: true, password: 'wohnwagen', taunt: 'Erstmal das richtige Passwort eingeben, Krame!', game: 'scooter', matrixClue: 'D5: 8 - 6 - 3 - 0' },
+    { id: 'andreas-2', label: 'Elephant Scooter Run', chained: true, password: 'wohnwagen', taunt: 'Erstmal das richtige Passwort eingeben, Krame!', game: 'scooter', replayLabel: '📋 Hinweis nochmal ansehen' },
     { id: 'andreas-3', label: 'Rätsel 3', chained: true, password: '' },
   ],
   mark: [
@@ -170,7 +170,7 @@ export default function Dashboard({ player, onLogout }) {
             <HorseGame matrixClue="C6: 7 - 8 - 2 - 6" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} showResult={activeGame.showResult || false} />
           )}
           {activeGame.game === 'scooter' && (
-            <ScooterGame matrixClue="D5: 8 - 6 - 3 - 0" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <ScooterGame matrixClue="D5: 8 - 6 - 3 - 0" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} showResult={activeGame.showResult || false} />
           )}
           {activeGame.game === 'braune-sosse' && (
             <BrauneSosseGame matrixClue="C5: 2 - 6 - 5 - 4 - 1 - 3" onWin={() => handleGameWin(activeGame.puzzleId)} />

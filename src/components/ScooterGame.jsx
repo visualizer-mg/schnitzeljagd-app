@@ -167,14 +167,14 @@ function loadImg(src) {
 }
 
 // ─── Main Component ───
-export default function ScooterGame({ onWin, matrixClue }) {
+export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
   const animRef = useRef(null);
   const musicRef = useRef(null);       // title music
   const engineRef = useRef(null);      // scooter engine loop
   const gameplayMusicRef = useRef(null); // gameplay music
-  const [phase, setPhase] = useState('title'); // title | playing | dead | win
+  const [phase, setPhase] = useState(showResult ? 'win' : 'title'); // title | playing | dead | win
 
   // Preload images
   const imagesRef = useRef({
@@ -537,6 +537,8 @@ export default function ScooterGame({ onWin, matrixClue }) {
 
       // ── Win check ──
       if (s.distance >= TARGET_KM * 1000) {
+        try { const w = new Audio('/assets/horse-sounds/winning.mp3'); w.volume = 0.6; w.play().catch(() => {}); } catch(e) {}
+        if (onWin) onWin(matrixClue);
         setPhase('win');
         return;
       }
@@ -842,31 +844,31 @@ export default function ScooterGame({ onWin, matrixClue }) {
         background: colors.bgPrimary, padding: 20,
         width: '100vw', height: '100vh',
         position: 'fixed', top: 0, left: 0, zIndex: 100,
+        overflowY: 'auto',
       }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
         <div style={{
           fontFamily: fonts.mono, fontSize: 18, fontWeight: 'bold',
-          color: colors.green, marginBottom: 8,
+          color: colors.green, marginBottom: 12,
         }}>
           {TARGET_KM} KM GESCHAFFT!
         </div>
+        <img
+          src="/assets/krame.webp"
+          alt="Krame"
+          style={{ width: 180, height: 'auto', borderRadius: 12, marginBottom: 16 }}
+        />
         <div style={{
-          background: `${colors.green}15`, border: `1px solid ${colors.green}40`,
-          borderRadius: 8, padding: '16px 32px',
-          textAlign: 'center', marginBottom: 20,
+          fontFamily: fonts.mono, fontSize: 'clamp(12px, 3.5vw, 14px)', color: colors.textMuted,
+          textAlign: 'center', lineHeight: 1.8, maxWidth: 340, marginBottom: 24,
+          padding: '0 12px',
         }}>
-          <div style={{
-            fontFamily: fonts.mono, fontSize: 14, color: colors.textSecondary,
-            marginBottom: 12, lineHeight: 1.5,
-          }}>
-            Herzlichen Glückwunsch!<br />Du hast einen Matrix Clue freigeschaltet:
-          </div>
-          <div style={{
-            fontSize: 24, fontFamily: fonts.mono, fontWeight: 'bold',
-            color: colors.yellow, letterSpacing: 2,
-          }}>
-            {matrixClue || 'D5: 8 - 6 - 3 - 0'}
-          </div>
+          Herzlichen Glückwunsch. Du hast das Game erfolgreich durchgespielt.<br /><br />
+          Mein lieber Scholli, nicht schlecht...<br /><br />
+          <span style={{ color: colors.yellow }}>Aber hast du wirklich gedacht das wars schon... 😎</span><br /><br />
+          <span style={{ color: colors.textSubtle, fontStyle: 'italic' }}>
+            Den Matrix-Clue fürs Buch findest du erst, wenn du den Stöpsel abmachst, den du damals runtergeschossen hast und es Theresa in die Schuhe geschoben hast....
+          </span>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button
@@ -875,19 +877,19 @@ export default function ScooterGame({ onWin, matrixClue }) {
               fontFamily: fonts.mono, fontSize: 13,
               color: colors.text, background: colors.bgSecondary,
               border: `1px solid ${colors.border}`, borderRadius: 6,
-              padding: '8px 20px', cursor: 'pointer',
+              padding: '8px 20px', cursor: 'pointer', minHeight: 44,
             }}
           >
-            ↻ NOCHMAL
+            ↻ NOCHMAL SPIELEN
           </button>
-          {onWin && (
+          {onBack && (
             <button
-              onClick={() => onWin(matrixClue)}
+              onClick={() => { [musicRef, engineRef, gameplayMusicRef].forEach(ref => { if (ref.current) { ref.current.pause(); ref.current = null; } }); if (onBack) onBack(); }}
               style={{
                 fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
                 color: '#fff', background: colors.greenDark,
                 border: `1px solid ${colors.green}`, borderRadius: 6,
-                padding: '8px 20px', cursor: 'pointer',
+                padding: '8px 20px', cursor: 'pointer', minHeight: 44,
               }}
             >
               ✓ WEITER

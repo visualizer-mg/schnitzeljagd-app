@@ -69,8 +69,12 @@ export default function TurtleGame({ onWin, onBack, matrixClue, showResult }) {
   useEffect(() => {
     if (phase !== 'playing' || hasWonRef.current) return;
 
-    const rows = [nameOrder, headOrder, weaponOrder, weaponNameOrder];
-    const allCorrect = rows.every(row => row.every((v, i) => v === i));
+    // Check if all columns are consistent (same turtle in each column across all rows)
+    const allCorrect = nameOrder.every((_, i) =>
+      nameOrder[i] === headOrder[i] &&
+      headOrder[i] === weaponOrder[i] &&
+      weaponOrder[i] === weaponNameOrder[i]
+    );
 
     if (allCorrect) {
       hasWonRef.current = true;

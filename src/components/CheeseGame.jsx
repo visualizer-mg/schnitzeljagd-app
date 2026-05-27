@@ -71,11 +71,19 @@ const CHEESE_POSITIONS = [
 ];
 
 const START = { col: 19, row: 19 };      // start bottom-right
-const EXIT  = { col: 9, row: 1 };        // exit top-center — only appears after all 15 cheeses
 const CAT_START = { col: 11, row: 11 };
+
+// Precompute all valid path cells for dynamic exit placement
+const PATH_CELLS = [];
+for (let r = 0; r < ROWS; r++) {
+  for (let c = 0; c < COLS; c++) {
+    if (MAZE[r][c] === 0) PATH_CELLS.push({ col: c, row: r });
+  }
+}
 
 // Sound paths
 const SFX_HAPPY = './assets/cheese-sounds/happy.mp3';
+const SFX_BURP = './assets/cheese-sounds/burp.wav';
 const SFX_EAT1 = './assets/cheese-sounds/eat1.wav';
 const SFX_EAT2 = './assets/cheese-sounds/eat2.mp3';
 
@@ -107,6 +115,35 @@ function collidesWall(cx, cy, r) {
     pixelToCell(cx + r, cy + r),
   ];
   return checks.some(({ col, row }) => isWall(col, row));
+}
+
+// Corner assist — nudge mouse toward cell center to slide around corners
+function cornerAssist(mouseX, mouseY, dx, dy, speed, r) {
+  const nudge = speed * 0.6;
+  const cell = pixelToCell(mouseX, mouseY);
+  const center = cellCenter(cell.col, cell.row);
+
+  // Moving horizontally but stuck? Try nudging vertically toward cell center
+  if (dx !== 0 && dy === 0) {
+    const offsetY = center.y - mouseY;
+    if (Math.abs(offsetY) > 1) {
+      const nudgeY = Math.sign(offsetY) * Math.min(nudge, Math.abs(offsetY));
+      if (!collidesWall(mouseX + dx * speed, mouseY + nudgeY, r)) {
+        return { x: mouseX + dx * speed, y: mouseY + nudgeY };
+      }
+    }
+  }
+  // Moving vertically but stuck? Try nudging horizontally toward cell center
+  if (dy !== 0 && dx === 0) {
+    const offsetX = center.x - mouseX;
+    if (Math.abs(offsetX) > 1) {
+      const nudgeX = Math.sign(offsetX) * Math.min(nudge, Math.abs(offsetX));
+      if (!collidesWall(mouseX + nudgeX, mouseY + dy * speed, r)) {
+        return { x: mouseX + nudgeX, y: mouseY + dy * speed };
+      }
+    }
+  }
+  return null; // no assist needed
 }
 
 // ─── BFS Pathfinding — shortest path from (sc,sr) to (tc,tr) ───
@@ -240,7 +277,7 @@ function drawCheese(ctx, x, y, time) {
   ctx.restore();
 }
 
-function drawExit(ctx, x, y, time) {
+function drawExit(ctx, x, y, time, darkness) {
   ctx.save();
   ctx.translate(x, y);
   const pulse = 0.6 + Math.sin(time * 0.004) * 0.4;
@@ -251,6 +288,12 @@ function drawExit(ctx, x, y, time) {
   ctx.fillStyle = colors.green;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('\u{1F6AA}', 0, 0);
+  // Label "Ausgang" only when it's light (no darkness)
+  if (!darkness || darkness < 0.1) {
+    ctx.font = `bold 10px ${fonts.mono}`;
+    ctx.fillStyle = colors.green;
+    ctx.fillText('Ausgang', 0, CELL / 2 + 10);
+  }
   ctx.restore();
 }
 
@@ -331,6 +374,7 @@ export default function CheeseGame({ onWin, matrixClue }) {
       activeBubble: -1,
       won: false,
       exitOpen: false,
+      exitPos: null, // set dynamically when all cheese collected
       flickerPhase: 0,        // 0 = light on, increases with time
       flickerStart: 0,
     };
@@ -433,9 +477,15 @@ export default function CheeseGame({ onWin, matrixClue }) {
           const mkx = (kx / kLen) * speed;
           const mky = (ky / kLen) * speed;
           const newKX = g.mouse.x + mkx;
-          if (!collidesWall(newKX, g.mouse.y, MOUSE_RADIUS)) g.mouse.x = newKX;
           const newKY = g.mouse.y + mky;
-          if (!collidesWall(g.mouse.x, newKY, MOUSE_RADIUS)) g.mouse.y = newKY;
+          let movedX = false, movedY = false;
+          if (!collidesWall(newKX, g.mouse.y, MOUSE_RADIUS)) { g.mouse.x = newKX; movedX = true; }
+          if (!collidesWall(g.mouse.x, newKY, MOUSE_RADIUS)) { g.mouse.y = newKY; movedY = true; }
+          // Corner assist — if stuck, nudge around corner
+          if (!movedX || !movedY) {
+            const assist = cornerAssist(g.mouse.x, g.mouse.y, kx, ky, speed, MOUSE_RADIUS);
+            if (assist) { g.mouse.x = assist.x; g.mouse.y = assist.y; }
+          }
         } else if (g.useMouseFollow && g.targetX !== null) {
           // Mouse/touch follow — only when user explicitly moved mouse/finger
           const dx = g.targetX - g.mouse.x;
@@ -445,9 +495,17 @@ export default function CheeseGame({ onWin, matrixClue }) {
             const moveX = (dx / dist) * speed;
             const moveY = (dy / dist) * speed;
             const newX = g.mouse.x + moveX;
-            if (!collidesWall(newX, g.mouse.y, MOUSE_RADIUS)) g.mouse.x = newX;
             const newY = g.mouse.y + moveY;
-            if (!collidesWall(g.mouse.x, newY, MOUSE_RADIUS)) g.mouse.y = newY;
+            let movedX = false, movedY = false;
+            if (!collidesWall(newX, g.mouse.y, MOUSE_RADIUS)) { g.mouse.x = newX; movedX = true; }
+            if (!collidesWall(g.mouse.x, newY, MOUSE_RADIUS)) { g.mouse.y = newY; movedY = true; }
+            // Corner assist — nudge around corners for smoother movement
+            if (!movedX || !movedY) {
+              const dirX = dx !== 0 ? Math.sign(dx) : 0;
+              const dirY = dy !== 0 ? Math.sign(dy) : 0;
+              const assist = cornerAssist(g.mouse.x, g.mouse.y, dirX, dirY, speed, MOUSE_RADIUS);
+              if (assist) { g.mouse.x = assist.x; g.mouse.y = assist.y; }
+            }
           }
         }
       }
@@ -523,22 +581,35 @@ export default function CheeseGame({ onWin, matrixClue }) {
             } catch(e) {}
 
             if (g.collected >= TOTAL_CHEESE) {
-              g.exitOpen = true; // exit now appears!
+              // Pick the path cell farthest from mouse as exit
+              const mx = g.mouse.x, my = g.mouse.y;
+              let bestDist = -1, bestCell = PATH_CELLS[0];
+              PATH_CELLS.forEach(pc => {
+                const cp = cellCenter(pc.col, pc.row);
+                const d = (cp.x - mx) ** 2 + (cp.y - my) ** 2;
+                if (d > bestDist) { bestDist = d; bestCell = pc; }
+              });
+              g.exitPos = { col: bestCell.col, row: bestCell.row };
+              g.exitOpen = true;
             }
           }
         });
       }
 
       // ─── Check if mouse reached exit (only when open) ───
-      if (!isFrozen && g.exitOpen) {
-        const ep = cellCenter(EXIT.col, EXIT.row);
+      if (!isFrozen && g.exitOpen && g.exitPos) {
+        const ep = cellCenter(g.exitPos.col, g.exitPos.row);
         const exDx = g.mouse.x - ep.x;
         const exDy = g.mouse.y - ep.y;
         if (Math.sqrt(exDx * exDx + exDy * exDy) < MOUSE_RADIUS + 10) {
           g.running = false;
           g.won = true;
           setGameState('won');
-          stopMusic();
+          // Restart music from beginning, lower volume for win screen
+          if (musicRef.current) {
+            musicRef.current.currentTime = 0;
+            musicRef.current.volume = 0.2;
+          }
         }
       }
 
@@ -590,10 +661,10 @@ export default function CheeseGame({ onWin, matrixClue }) {
         }
       }
 
-      // Exit marker — only visible after all 7 cheeses
-      if (g.exitOpen) {
-        const exitPos = cellCenter(EXIT.col, EXIT.row);
-        drawExit(ctx, exitPos.x, exitPos.y, now);
+      // Exit marker — only visible after all 15 cheeses
+      if (g.exitOpen && g.exitPos) {
+        const exitPixel = cellCenter(g.exitPos.col, g.exitPos.row);
+        drawExit(ctx, exitPixel.x, exitPixel.y, now, darkness);
       }
 
       // Cheeses
@@ -725,32 +796,48 @@ export default function CheeseGame({ onWin, matrixClue }) {
 
         {gameState === 'start' && overlay(
           <>
-            <div style={{ fontSize: 48, marginBottom: 8 }}>🐭</div>
             <div style={{
-              fontFamily: fonts.mono, fontSize: 'clamp(16px, 5vw, 22px)', color: colors.yellow,
-              fontWeight: 'bold', letterSpacing: 2, marginBottom: 4,
+              fontFamily: fonts.mono, fontSize: 'clamp(14px, 4.5vw, 20px)', color: colors.yellow,
+              fontWeight: 'bold', letterSpacing: 2, marginBottom: 12, textAlign: 'center',
             }}>
-              DAS WEISSLACKER-MASSAKER
+              🐭 DAS WEISSLACKER-MASSAKER 🐭
             </div>
+            <img
+              src="./assets/cheese-sounds/weisslacker1zu1.webp"
+              alt="Weisslacker"
+              style={{
+                width: '60%', maxWidth: 180, borderRadius: 10,
+                marginBottom: 14, border: `2px solid ${colors.yellow}`,
+              }}
+            />
             <div style={{
-              fontFamily: fonts.mono, fontSize: 11, color: colors.textSubtle,
-              letterSpacing: 1, marginBottom: 16,
+              fontFamily: fonts.mono, fontSize: 'clamp(11px, 3vw, 13px)', color: colors.textMuted,
+              textAlign: 'center', lineHeight: 1.7, maxWidth: 360, marginBottom: 10,
+              padding: '0 16px',
             }}>
-              ━━━ EIN KÄSE-LABYRINTH ━━━
+              Steuere die Maus durch das Labyrinth<br />
+              und friss alle 15 Käsestücke.<br />
+              <span style={{ color: colors.textSubtle, fontSize: 11 }}>
+                Die Maus wird durch Antippen der Pfeiltasten gesteuert.
+              </span>
             </div>
             <div style={{
               fontFamily: fonts.mono, fontSize: 'clamp(11px, 3vw, 13px)', color: colors.textMuted,
-              textAlign: 'center', lineHeight: 1.7, maxWidth: 360, marginBottom: 24,
+              textAlign: 'center', lineHeight: 1.9, maxWidth: 360, marginBottom: 10,
               padding: '0 16px',
             }}>
-              Führe die Maus durch das Labyrinth<br />
-              und sammle alle 7 Käsestücke!<br />
-              <span style={{ color: colors.textSubtle, fontSize: 11 }}>
-                {isTouch ? 'Steuerung: D-Pad unten' : 'Steuerung: Maus oder Pfeiltasten/WASD'}
-              </span><br /><br />
               <span style={{ color: colors.orange }}>🐱 Vorsicht vor der Katze!</span><br />
-              <span style={{ color: colors.yellow }}>⚡ Ab Käse #5 flackert das Licht...</span><br />
-              <span style={{ color: colors.green }}>🚪 Ausgang erst nach allen 7 Käse!</span>
+              <span style={{ color: colors.yellow }}>⚡ Ab Käse #10 flackert das Licht...</span><br />
+              <span style={{ color: colors.green }}>🚪 Finde am Schluss den Ausgang</span>
+            </div>
+            <div style={{
+              fontFamily: fonts.mono, fontSize: 'clamp(11px, 3vw, 12px)', color: colors.textSubtle,
+              textAlign: 'center', lineHeight: 1.6, maxWidth: 340, marginBottom: 20,
+              padding: '0 16px', fontStyle: 'italic',
+            }}>
+              Wenn du es schaffst, schaltest du<br />
+              einen Matrix-Clue frei...<br />
+              Viel Erfolg!
             </div>
             <button
               onClick={startGame}
@@ -771,19 +858,18 @@ export default function CheeseGame({ onWin, matrixClue }) {
 
         {gameState === 'won' && overlay(
           <>
-            <div style={{ fontSize: 48, marginBottom: 8 }}>🧀</div>
-            <div style={{
-              fontFamily: fonts.mono, fontSize: 20, color: colors.green,
-              fontWeight: 'bold', letterSpacing: 2, marginBottom: 8,
-            }}>
-              ALLE KÄSE GEFUNDEN!
-            </div>
-            <div style={{
-              fontFamily: fonts.mono, fontSize: 13, color: colors.textMuted,
-              marginBottom: 20,
-            }}>
-              Die Maus hat überlebt... gerade so.
-            </div>
+            {/* Win video — autoplay, no controls */}
+            <video
+              src="./assets/cheese-sounds/win-video.mp4"
+              autoPlay
+              loop
+              playsInline
+              muted={false}
+              style={{
+                width: '100%', maxWidth: 340, borderRadius: 10,
+                marginBottom: 16, border: `2px solid ${colors.green}`,
+              }}
+            />
             <div style={{
               background: 'rgba(46, 160, 67, 0.15)',
               border: `1px solid ${colors.green}`,
@@ -805,7 +891,7 @@ export default function CheeseGame({ onWin, matrixClue }) {
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
               <button
-                onClick={startGame}
+                onClick={() => { try { new Audio(SFX_BURP).play().catch(()=>{}); } catch(e){} startGame(); }}
                 style={{
                   fontFamily: fonts.mono, fontSize: 13,
                   color: colors.text, background: colors.bgSecondary,
@@ -817,7 +903,7 @@ export default function CheeseGame({ onWin, matrixClue }) {
               </button>
               {onWin && (
                 <button
-                  onClick={() => onWin(matrixClue || '3 8 4 6 1 2')}
+                  onClick={() => { try { new Audio(SFX_BURP).play().catch(()=>{}); } catch(e){} stopMusic(); onWin(matrixClue || '3 8 4 6 1 2'); }}
                   style={{
                     fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
                     color: '#fff', background: colors.greenDark,

@@ -7,7 +7,7 @@ const COLS = 21;
 const ROWS = 21;
 const MAZE_W = COLS * CELL;
 const MAZE_H = ROWS * CELL;
-const PANEL_H = 160;
+const PANEL_H = 30;
 const CANVAS_W = MAZE_W + 18;
 const CANVAS_H = MAZE_H + PANEL_H + 10;
 const PAD_X = Math.floor((CANVAS_W - MAZE_W) / 2);
@@ -23,7 +23,8 @@ const LIGHT_RADIUS = 70;         // visible radius during flicker
 const FLICKER_ON_MS = 4000;      // light on duration
 const FLICKER_OFF_MS = 2800;     // light off duration
 const FLICKER_FADE_MS = 600;     // fade transition
-const FLICKER_START_CHEESE = 4;  // flicker starts after this many cheeses
+const FLICKER_START_CHEESE = 10;  // flicker starts after this many cheeses
+const TOTAL_CHEESE = 15;
 
 // ─── Maze layout (1=wall, 0=path) ───
 const MAZE = [
@@ -50,31 +51,33 @@ const MAZE = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ];
 
-// 7 cheese positions — spread through the maze, no cheese at exit
+// 15 cheese positions — spread as far apart as possible
 const CHEESE_POSITIONS = [
-  { col: 3, row: 3 },
-  { col: 9, row: 5 },
-  { col: 15, row: 7 },
-  { col: 5, row: 11 },
-  { col: 11, row: 13 },
-  { col: 3, row: 17 },
-  { col: 19, row: 19 },
+  { col: 1, row: 1 },
+  { col: 19, row: 1 },
+  { col: 9, row: 3 },
+  { col: 3, row: 5 },
+  { col: 15, row: 5 },
+  { col: 7, row: 7 },
+  { col: 19, row: 7 },
+  { col: 1, row: 9 },
+  { col: 9, row: 11 },
+  { col: 19, row: 11 },
+  { col: 3, row: 13 },
+  { col: 15, row: 15 },
+  { col: 5, row: 17 },
+  { col: 19, row: 17 },
+  { col: 1, row: 19 },
 ];
 
 const START = { col: 19, row: 19 };      // start bottom-right
-const EXIT  = { col: 9, row: 1 };        // exit top-center — only appears after all 7 cheeses
+const EXIT  = { col: 9, row: 1 };        // exit top-center — only appears after all 15 cheeses
 const CAT_START = { col: 11, row: 11 };
 
-// Speech bubbles — Maus beschwert sich immer mehr
-const SPEECH_BUBBLES = [
-  "Mmmh, lecker! Her damit!",
-  "Mir wird... ein bisschen warm...",
-  "Ist das normal dass alles wackelt?",
-  "Ich glaub ich brauch ne Pause...",
-  "Wer hat den Raum gedreht?!",
-  "Nie... wieder... Käse...",
-  "Okay... eins noch... dann Ausgang!",
-];
+// Sound paths
+const SFX_HAPPY = './assets/cheese-sounds/happy.mp3';
+const SFX_EAT1 = './assets/cheese-sounds/eat1.wav';
+const SFX_EAT2 = './assets/cheese-sounds/eat2.mp3';
 
 // ─── Helpers ───
 function cellCenter(col, row) {
@@ -174,11 +177,7 @@ function drawMouse(ctx, x, y, cheeseCount, time) {
   // Tail
   ctx.strokeStyle = '#c0a0a0'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(0, 8); ctx.quadraticCurveTo(5, 12, 2, 16); ctx.stroke();
-  // Green face when sick
-  if (cheeseCount >= 4) {
-    ctx.fillStyle = `rgba(100, 200, 100, ${0.15 + cheeseCount * 0.05})`;
-    ctx.beginPath(); ctx.ellipse(0, 0, 6, 8, 0, 0, Math.PI * 2); ctx.fill();
-  }
+  // (sick face removed)
   ctx.restore();
 }
 
@@ -305,6 +304,7 @@ function DPadButton({ direction, icon, onPress, onRelease, style }) {
 export default function CheeseGame({ onWin, matrixClue }) {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
+  const musicRef = useRef(null);
   const [gameState, setGameState] = useState('start');
   const [collected, setCollected] = useState(0);
   const [showBubble, setShowBubble] = useState(null);
@@ -336,12 +336,28 @@ export default function CheeseGame({ onWin, matrixClue }) {
     };
   }, []);
 
+  const startMusic = () => {
+    try {
+      if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
+      const music = new Audio(SFX_HAPPY);
+      music.loop = true;
+      music.volume = 0.4;
+      music.play().catch(() => {});
+      musicRef.current = music;
+    } catch(e) {}
+  };
+
+  const stopMusic = () => {
+    if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
+  };
+
   const startGame = useCallback(() => {
     initGame();
     setCollected(0);
     setShowBubble(null);
     setCaught(false);
     setGameState('playing');
+    startMusic();
   }, [initGame]);
 
   useEffect(() => {
@@ -477,6 +493,7 @@ export default function CheeseGame({ onWin, matrixClue }) {
           g.running = false;
           setCaught(true);
           setGameState('lost');
+          stopMusic();
         }
       }
 
@@ -497,7 +514,15 @@ export default function CheeseGame({ onWin, matrixClue }) {
             setCollected(g.collected);
             setShowBubble(c.index);
 
-            if (g.collected >= 7) {
+            // Play eat sound alternating
+            try {
+              const eatSrc = g.collected % 2 === 1 ? SFX_EAT1 : SFX_EAT2;
+              const eatAudio = new Audio(eatSrc);
+              eatAudio.volume = 0.5;
+              eatAudio.play().catch(() => {});
+            } catch(e) {}
+
+            if (g.collected >= TOTAL_CHEESE) {
               g.exitOpen = true; // exit now appears!
             }
           }
@@ -513,6 +538,7 @@ export default function CheeseGame({ onWin, matrixClue }) {
           g.running = false;
           g.won = true;
           setGameState('won');
+          stopMusic();
         }
       }
 
@@ -611,25 +637,7 @@ export default function CheeseGame({ onWin, matrixClue }) {
 
       // (caught = game over, handled by lost screen)
 
-      // ─── Speech bubble ───
-      if (g.activeBubble >= 0) {
-        const bubbleText = SPEECH_BUBBLES[g.activeBubble];
-        ctx.font = `bold 11px ${fonts.sans}`;
-        const textW = ctx.measureText(bubbleText).width;
-        const bx = Math.max(PAD_X + 5, Math.min(CANVAS_W - PAD_X - textW - 20, g.mouse.x - textW / 2 - 8));
-        const by = Math.max(PAD_Y + 5, g.mouse.y - 40);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        const bw = textW + 16;
-        const bh = 24;
-        ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 6); ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(g.mouse.x - 4, by + bh);
-        ctx.lineTo(g.mouse.x, by + bh + 6);
-        ctx.lineTo(g.mouse.x + 4, by + bh);
-        ctx.fill();
-        ctx.fillStyle = '#1a1a1a'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        ctx.fillText(bubbleText, bx + 8, by + bh / 2);
-      }
+      // (speech bubbles removed)
 
       // ─── Flicker warning indicator ───
       if (flickerActive && darkness > 0.5) {
@@ -649,56 +657,13 @@ export default function CheeseGame({ onWin, matrixClue }) {
       ctx.font = `bold 11px ${fonts.mono}`;
       ctx.fillStyle = colors.textMuted;
       ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      ctx.fillText(`\u{1F9C0} K\u00C4SE GESAMMELT: ${g.collected} / 7`, CANVAS_W / 2, panelY + 2);
+      ctx.fillText(`\u{1F9C0} K\u00C4SE: ${g.collected} / ${TOTAL_CHEESE}`, CANVAS_W / 2, panelY + 2);
 
-      // 7 slots
-      const slotW = 58; const slotH = 58; const slotGap = 6;
-      const totalSlotsW = 7 * slotW + 6 * slotGap;
-      const startSlotX = (CANVAS_W - totalSlotsW) / 2;
-      const slotY = panelY + 20;
-
-      for (let i = 0; i < 7; i++) {
-        const sx = startSlotX + i * (slotW + slotGap);
-        const isCol = i < g.collected;
-        ctx.fillStyle = isCol ? 'rgba(255, 215, 0, 0.08)' : 'rgba(255,255,255,0.03)';
-        ctx.fillRect(sx, slotY, slotW, slotH);
-        ctx.strokeStyle = isCol ? '#DAA520' : colors.borderSubtle;
-        ctx.lineWidth = isCol ? 1.5 : 1;
-        ctx.strokeRect(sx, slotY, slotW, slotH);
-
-        if (isCol) {
-          ctx.save();
-          ctx.translate(sx + slotW / 2, slotY + slotH / 2 - 4);
-          ctx.font = `20px ${fonts.sans}`;
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          const mouseEmojis = ['\u{1F42D}', '\u{1F42D}', '\u{1F605}', '\u{1F922}', '\u{1F92E}', '\u{1F480}', '\u2620\uFE0F'];
-          ctx.fillText(mouseEmojis[i], 0, 0);
-          ctx.restore();
-          const sickColors = ['#7ee787', '#7ee787', '#d29922', '#d29922', '#FFA657', '#F47067', '#F47067'];
-          ctx.font = `bold 9px ${fonts.mono}`;
-          ctx.fillStyle = sickColors[i];
-          ctx.textAlign = 'center';
-          ctx.fillText(`#${i + 1}`, sx + slotW / 2, slotY + slotH - 4);
-        } else {
-          ctx.font = `18px ${fonts.sans}`;
-          ctx.fillStyle = colors.textSubtle;
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText('?', sx + slotW / 2, slotY + slotH / 2);
-        }
-      }
-
-      if (g.activeBubble >= 0) {
-        ctx.fillStyle = colors.textSubtle;
-        ctx.font = `italic 10px ${fonts.sans}`;
-        ctx.textAlign = 'center';
-        ctx.fillText(`"${SPEECH_BUBBLES[g.activeBubble]}"`, CANVAS_W / 2, slotY + slotH + 14);
-      }
-
-      if (g.collected >= 7) {
-        ctx.font = `bold 14px ${fonts.mono}`;
+      if (g.collected >= TOTAL_CHEESE) {
+        ctx.font = `bold 12px ${fonts.mono}`;
         ctx.fillStyle = colors.green;
         ctx.textAlign = 'center';
-        ctx.fillText('\u{1F6AA} AUSGANG OFFEN! Schnell raus!', CANVAS_W / 2, slotY + slotH + 32);
+        ctx.fillText('\u{1F6AA} AUSGANG OFFEN! Schnell raus!', CANVAS_W / 2, panelY + 18);
       }
 
       animId = requestAnimationFrame(loop);
@@ -716,6 +681,7 @@ export default function CheeseGame({ onWin, matrixClue }) {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       if (g) g.running = false;
+      stopMusic();
     };
   }, [gameState, isTouch]);
 

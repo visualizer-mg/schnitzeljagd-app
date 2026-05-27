@@ -17,7 +17,7 @@ import TaxiDrawGame from '../components/TaxiDrawGame';
 const PLAYER_PUZZLES = {
   andreas: [
     { id: 'andreas-1', label: 'Rätseltruhe 1', chained: true, password: 'indiana jones', taunt: 'Krame, so einfach isses net! Erstmal korrektes Passwort eingeben!' },
-    { id: 'andreas-2', label: 'Rätseltruhe 2', solvedLabel: 'Elephant Scooter Run', chained: true, password: 'wohnwagen', taunt: 'Erstmal das richtige Passwort eingeben, Krame!', game: 'scooter', replayLabel: '📋 Hinweis nochmal ansehen' },
+    { id: 'andreas-2', label: 'Rätseltruhe 2', solvedLabel: 'Elephant Scooter Run', chained: true, password: 'elefant', taunt: 'Erstmal das richtige Passwort eingeben, Krame!', game: 'scooter', replayLabel: '📋 Hinweis nochmal ansehen' },
     { id: 'andreas-3', label: 'Rätseltruhe 3', chained: true, password: 'ninja turtles', taunt: 'Krame, erstmal das richtige Passwort eingeben!' },
   ],
   mark: [

@@ -28,7 +28,7 @@ const PLAYER_PUZZLES = {
     { id: 'ellen-1', label: 'Rätseltruhe 1', solvedLabel: 'Das Weisslacker-Massaker', chained: true, password: 'DasWeisslackerMassaker', caseSensitive: true, taunt: 'Ellen, du brauchst das richtige Passwort! Vielleicht hilft dir ein besonderes Licht weiter...', game: 'cheese', matrixClue: 'C1: 3 - 8 - 4 - 6 - 1 - 2' },
   ],
   theresa: [
-    { id: 'theresa-1', label: 'Rätseltruhe 1', solvedLabel: 'Himmelsritt', chained: true, password: 'pferde', taunt: 'Theresa, erstmal das richtige Passwort eingeben!', nearMiss: { pferd: 'Fast korrekt! Aber die Mehrzahl davon 😉' }, game: 'horse', matrixClue: 'C6: 7 - 8 - 2 - 6' },
+    { id: 'theresa-1', label: 'Rätseltruhe 1', solvedLabel: 'Himmelsritt', chained: true, password: 'pferde', taunt: 'Theresa, erstmal das richtige Passwort eingeben!', nearMiss: { pferd: 'Fast korrekt! Aber die Mehrzahl davon 😉' }, game: 'horse', matrixClue: 'C6: 7 - 8 - 2 - 6', replayLabel: '📋 Hinweis nochmal ansehen' },
     { id: 'theresa-2', label: 'Rätsel 2', solvedLabel: '3-Striche-Rätsel', game: 'taxi-draw', matrixClue: 'C14: 7 - 4 - 3 - 8' },
   ],
   beate: [
@@ -167,7 +167,7 @@ export default function Dashboard({ player, onLogout }) {
             <CheeseGame matrixClue="C1: 3 - 8 - 4 - 6 - 1 - 2" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
           )}
           {activeGame.game === 'horse' && (
-            <HorseGame matrixClue="C6: 7 - 8 - 2 - 6" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
+            <HorseGame matrixClue="C6: 7 - 8 - 2 - 6" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} showResult={activeGame.showResult || false} />
           )}
           {activeGame.game === 'scooter' && (
             <ScooterGame matrixClue="D5: 8 - 6 - 3 - 0" onWin={() => handleGameWin(activeGame.puzzleId)} />

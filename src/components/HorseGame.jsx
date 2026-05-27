@@ -290,10 +290,11 @@ function drawBackground(ctx, cameraY, heightMeter) {
 const SFX_JUMP = './assets/horse-sounds/jump.mp3';
 const SFX_BOING = './assets/horse-sounds/boing-jump.wav';
 const SFX_BREAK = '/assets/chain-break.wav';
-const SFX_WIN = '/assets/chest-open.wav';
+const SFX_WIN = './assets/horse-sounds/winning.mp3';
+const SFX_NEIGH = './assets/horse-sounds/neigh.mp3';
 const MUSIC_BG = './assets/cheese-sounds/happy.mp3';
 
-export default function HorseGame({ onWin, onBack, matrixClue }) {
+export default function HorseGame({ onWin, onBack, matrixClue, showResult }) {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
   const [height, setHeight] = useState(0);
@@ -314,6 +315,18 @@ export default function HorseGame({ onWin, onBack, matrixClue }) {
     if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
   };
   useEffect(() => () => stopMusic(), []);
+
+  // Play neigh sound on start screen
+  useEffect(() => {
+    if (gameState === 'start' && !showResult) {
+      playSound(SFX_NEIGH, 0.5);
+    }
+  }, []);
+
+  // If showResult, jump straight to won screen
+  useEffect(() => {
+    if (showResult) setGameState('won');
+  }, [showResult]);
 
   const initGame = useCallback(() => {
     // Generate initial platforms
@@ -721,7 +734,7 @@ export default function HorseGame({ onWin, onBack, matrixClue }) {
               padding: '0 12px',
             }}>
               Herzlichen Glückwunsch, du hast es geschafft! 🐴✨<br /><br />
-              Allerdings hast du es noch nicht ganz geschafft den Matrix Clue freizuschalten.<br /><br />
+              Allerdings hast du den Matrix Clue noch nicht ganz freigeschaltet.<br /><br />
               <span style={{ color: colors.yellow }}>Dieser ist am schwarzen Pferd versteckt...</span><br />
               <span style={{ color: colors.textSubtle, fontStyle: 'italic' }}>Hä, welches schwarze Pferd? 🤔</span>
             </div>

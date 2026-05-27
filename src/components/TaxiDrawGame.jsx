@@ -1,36 +1,89 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { colors, fonts } from '../theme';
 
-// ─── Base strokes that form the puzzle image (parts of T, A, X, i) ───
-// These are the strokes the player sees BEFORE drawing.
-// Canvas is 350x400 logical pixels.
+// ─── Base strokes (parts of T, A, X, i) — centered with good padding ───
+// Canvas logical size: 350 x 400
 const BASE_STROKES = [
-  // Stroke 1: "7" shape — top bar of T flowing into left leg of A
-  { points: [{ x: 55, y: 135 }, { x: 205, y: 135 }, { x: 115, y: 340 }], width: 7 },
-  // Stroke 2: "V" shape — right leg of A + first diagonal of X
-  { points: [{ x: 195, y: 145 }, { x: 255, y: 340 }, { x: 305, y: 145 }], width: 7 },
-  // Stroke 3: "i" — vertical stem
-  { points: [{ x: 330, y: 160 }, { x: 330, y: 340 }], width: 6 },
+  // "7" shape — top bar of T + left leg of A
+  { points: [{ x: 50, y: 140 }, { x: 170, y: 140 }, { x: 100, y: 320 }], width: 7 },
+  // "V" shape — right leg of A + first diagonal of X
+  { points: [{ x: 160, y: 145 }, { x: 215, y: 320 }, { x: 265, y: 145 }], width: 7 },
+  // "i" stem
+  { points: [{ x: 290, y: 155 }, { x: 290, y: 320 }], width: 6 },
 ];
-// The dot on the i
-const I_DOT = { x: 330, y: 130, radius: 5 };
+const I_DOT = { x: 290, y: 130, radius: 5 };
 
 const MAX_STROKES = 3;
-const ANSWER = 'taxi';
+const SFX_ERROR = '/assets/error-buzz.mp3';
+
+// ─── Validation zones for the 3 missing strokes ───
+// Zone T: vertical stem (left area, x ~80-140, tall)
+// Zone A: horizontal crossbar (middle, y ~210-270)
+// Zone X: diagonal crossing the V (right area, x ~160-280)
+
+function analyzeStroke(points) {
+  if (points.length < 3) return null;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  let sumX = 0, sumY = 0;
+  points.forEach(p => {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+    sumX += p.x; sumY += p.y;
+  });
+  const w = maxX - minX;
+  const h = maxY - minY;
+  const cx = sumX / points.length;
+  const cy = sumY / points.length;
+  return { minX, maxX, minY, maxY, w, h, cx, cy };
+}
+
+function matchZone(info, scale) {
+  if (!info) return null;
+  // Scale-adjusted thresholds
+  const s = scale;
+  const minLen = 50 * s;
+
+  // Zone T: vertical stroke in left area
+  if (info.h > minLen && info.h > info.w * 1.5 && info.cx < 150 * s && info.cx > 60 * s) {
+    return 'T';
+  }
+  // Zone A: horizontal stroke in middle area
+  if (info.w > minLen * 0.6 && info.w > info.h * 1.3 && info.cy > 190 * s && info.cy < 290 * s && info.cx > 90 * s && info.cx < 220 * s) {
+    return 'A';
+  }
+  // Zone X: diagonal stroke in right area
+  if (info.w > minLen * 0.5 && info.h > minLen * 0.5 && info.cx > 150 * s && info.cx < 290 * s) {
+    // Check it's actually diagonal (not too horizontal or vertical)
+    const ratio = Math.min(info.w, info.h) / Math.max(info.w, info.h);
+    if (ratio > 0.25) return 'X';
+  }
+  return null;
+}
+
+function validateStrokes(strokes, scale) {
+  const matched = new Set();
+  strokes.forEach(s => {
+    const info = analyzeStroke(s.points);
+    const zone = matchZone(info, scale);
+    if (zone) matched.add(zone);
+  });
+  return matched.has('T') && matched.has('A') && matched.has('X');
+}
 
 export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
   const canvasRef = useRef(null);
-  const [strokes, setStrokes] = useState([]);       // completed user strokes
-  const [currentStroke, setCurrentStroke] = useState(null); // stroke being drawn
-  const [phase, setPhase] = useState('intro');       // intro → drawing → guessing → won
-  const [guess, setGuess] = useState('');
-  const [error, setError] = useState('');
+  const [strokes, setStrokes] = useState([]);
+  const [currentStroke, setCurrentStroke] = useState(null);
+  const [phase, setPhase] = useState('intro'); // intro → drawing → won
+  const [feedback, setFeedback] = useState(null); // { type: 'error', msg: '...' }
   const [winSaved, setWinSaved] = useState(false);
-  const containerRef = useRef(null);
+  const errorAudioRef = useRef(null);
 
   // ─── Canvas dimensions (responsive) ───
   const getCanvasSize = useCallback(() => {
-    const maxW = Math.min(380, window.innerWidth - 32);
+    const maxW = Math.min(340, window.innerWidth - 48);
     const scale = maxW / 350;
     return { w: Math.round(350 * scale), h: Math.round(400 * scale), scale };
   }, []);
@@ -43,29 +96,40 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
     return () => window.removeEventListener('resize', onResize);
   }, [getCanvasSize]);
 
+  // ─── Play error sound ───
+  const playError = () => {
+    try {
+      if (!errorAudioRef.current) {
+        errorAudioRef.current = new Audio(SFX_ERROR);
+      }
+      errorAudioRef.current.currentTime = 0;
+      errorAudioRef.current.play().catch(() => {});
+    } catch (e) {}
+  };
+
   // ─── Draw everything ───
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const { w, h, scale } = canvasSize;
-    canvas.width = w * 2;  // retina
+    canvas.width = w * 2;
     canvas.height = h * 2;
     canvas.style.width = w + 'px';
     canvas.style.height = h + 'px';
     ctx.scale(2, 2);
 
-    // Background
+    // Background — warm paper
     ctx.fillStyle = '#f5f0e8';
     ctx.fillRect(0, 0, w, h);
 
-    // Light grid texture
-    ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+    // Subtle paper texture lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.03)';
     ctx.lineWidth = 0.5;
-    for (let i = 0; i < w; i += 20 * scale) {
+    for (let i = 0; i < w; i += 25 * scale) {
       ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
     }
-    for (let i = 0; i < h; i += 20 * scale) {
+    for (let i = 0; i < h; i += 25 * scale) {
       ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
     }
 
@@ -89,11 +153,12 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
     ctx.arc(I_DOT.x * scale, I_DOT.y * scale, I_DOT.radius * scale, 0, Math.PI * 2);
     ctx.fill();
 
-    // Draw user strokes
+    // Draw user strokes (red if error feedback active, else black)
+    const strokeColor = feedback?.type === 'error' ? '#ff3333' : '#1a1a1a';
     const allStrokes = currentStroke ? [...strokes, { points: currentStroke }] : strokes;
     allStrokes.forEach(s => {
       if (s.points.length < 2) return;
-      ctx.strokeStyle = '#1a1a1a';
+      ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 7 * scale;
       ctx.beginPath();
       s.points.forEach((p, i) => {
@@ -102,15 +167,18 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
       ctx.stroke();
     });
 
-    // Stroke counter
-    const remaining = MAX_STROKES - strokes.length;
-    if (phase === 'drawing' && remaining > 0) {
-      ctx.font = `bold ${12 * scale}px ${fonts.mono}`;
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.textAlign = 'right';
-      ctx.fillText(`${remaining} Strich${remaining === 1 ? '' : 'e'} übrig`, w - 10 * scale, h - 10 * scale);
+    // Stroke counter (bottom right, subtle)
+    if (phase === 'drawing' && !feedback) {
+      const remaining = MAX_STROKES - strokes.length;
+      if (remaining > 0) {
+        ctx.font = `bold ${11 * scale}px ${fonts.mono}`;
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(`${remaining} Strich${remaining === 1 ? '' : 'e'} übrig`, w - 12 * scale, h - 8 * scale);
+      }
     }
-  }, [canvasSize, strokes, currentStroke, phase]);
+  }, [canvasSize, strokes, currentStroke, phase, feedback]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -133,21 +201,19 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
   };
 
   const handleStart = (e) => {
-    if (phase !== 'drawing' || strokes.length >= MAX_STROKES) return;
+    if (phase !== 'drawing' || strokes.length >= MAX_STROKES || feedback) return;
     e.preventDefault();
-    const pos = getPos(e);
-    setCurrentStroke([pos]);
+    setCurrentStroke([getPos(e)]);
   };
 
   const handleMove = (e) => {
     if (!currentStroke) return;
     e.preventDefault();
-    const pos = getPos(e);
-    setCurrentStroke(prev => [...prev, pos]);
+    setCurrentStroke(prev => [...prev, getPos(e)]);
   };
 
   const handleEnd = (e) => {
-    if (!currentStroke || currentStroke.length < 2) {
+    if (!currentStroke || currentStroke.length < 3) {
       setCurrentStroke(null);
       return;
     }
@@ -156,41 +222,27 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
     setStrokes(newStrokes);
     setCurrentStroke(null);
 
-    // Auto-transition to guessing after 3 strokes
+    // After 3 strokes → validate
     if (newStrokes.length >= MAX_STROKES) {
-      setTimeout(() => setPhase('guessing'), 600);
+      setTimeout(() => {
+        const correct = validateStrokes(newStrokes, canvasSize.scale);
+        if (correct) {
+          setPhase('won');
+          if (onWin && !winSaved) {
+            onWin(matrixClue);
+            setWinSaved(true);
+          }
+        } else {
+          // Wrong! Error sound + red flash + clear strokes
+          playError();
+          setFeedback({ type: 'error', msg: 'Sieht das für dich wie ein Auto aus? 🤔' });
+          setTimeout(() => {
+            setStrokes([]);
+            setFeedback(null);
+          }, 1800);
+        }
+      }, 400);
     }
-  };
-
-  const handleUndo = () => {
-    if (strokes.length > 0) {
-      setStrokes(prev => prev.slice(0, -1));
-      if (phase === 'guessing') setPhase('drawing');
-      setError('');
-    }
-  };
-
-  const handleGuess = () => {
-    const cleaned = guess.trim().toLowerCase();
-    if (cleaned === ANSWER) {
-      setPhase('won');
-      if (onWin && !winSaved) {
-        onWin(matrixClue);
-        setWinSaved(true);
-      }
-    } else if (cleaned.length === 0) {
-      setError('Gib ein Wort ein!');
-    } else if (cleaned === 'auto' || cleaned === 'car' || cleaned === 'wagen') {
-      setError('Fast! Aber welches Auto genau? 🚗');
-    } else if (cleaned === 'tax') {
-      setError('Noch ein Buchstabe... 👀');
-    } else {
-      setError('❌ Nope! Schau nochmal genau hin...');
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleGuess();
   };
 
   // ─── Styles ───
@@ -207,7 +259,7 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
   );
 
   return (
-    <div ref={containerRef} style={{
+    <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', minHeight: '100%', padding: 16,
       fontFamily: fonts.mono, color: colors.text, position: 'relative',
@@ -219,17 +271,19 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
           <div style={{ fontSize: 48, marginBottom: 12 }}>✏️</div>
           <div style={{
             fontSize: 'clamp(16px, 5vw, 22px)', color: colors.blue,
-            fontWeight: 'bold', letterSpacing: 2, marginBottom: 16,
+            fontWeight: 'bold', letterSpacing: 2, marginBottom: 20,
             textAlign: 'center',
           }}>
             3-STRICHE-RÄTSEL
           </div>
           <div style={{
             fontSize: 'clamp(12px, 3.5vw, 14px)', color: colors.textMuted,
-            textAlign: 'center', lineHeight: 1.8, maxWidth: 320, marginBottom: 24,
+            textAlign: 'center', lineHeight: 1.8, maxWidth: 320, marginBottom: 28,
           }}>
-            Du siehst eine Zeichnung.<br />
-            <span style={{ color: colors.yellow }}>Kannst du mit nur 3 Strichen<br />daraus ein Auto malen?</span><br /><br />
+            Du siehst eine Zeichnung.<br /><br />
+            <span style={{ color: colors.yellow, fontSize: 'clamp(14px, 4vw, 17px)', fontWeight: 'bold' }}>
+              Male mit 3 Strichen ein Auto!
+            </span><br /><br />
             <span style={{ color: colors.textSubtle, fontSize: 'clamp(11px, 3vw, 12px)' }}>
               Zeichne mit dem Finger oder der Maus.
             </span>
@@ -244,23 +298,22 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
               minHeight: 48,
             }}
           >
-            ✏️ ZEICHNEN
+            ✏️ LOS GEHT'S
           </button>
         </>
       )}
 
-      {/* ─── Drawing Canvas ─── */}
+      {/* ─── Drawing / Won Phase ─── */}
       {phase !== 'intro' && (
         <>
           {/* Header */}
           <div style={{
-            fontSize: 'clamp(13px, 4vw, 16px)', color: colors.blue,
-            fontWeight: 'bold', marginBottom: 10, letterSpacing: 1,
+            fontSize: 'clamp(14px, 4.5vw, 18px)', color: phase === 'won' ? colors.green : colors.yellow,
+            fontWeight: 'bold', marginBottom: 14, letterSpacing: 1,
             textAlign: 'center',
           }}>
-            {phase === 'drawing' && '✏️ Zeichne 3 Striche — mach ein Auto draus!'}
-            {phase === 'guessing' && '🤔 Was steht da jetzt?'}
-            {phase === 'won' && '🎉 Richtig!'}
+            {phase === 'drawing' && '✏️ Male mit 3 Strichen ein Auto!'}
+            {phase === 'won' && '🚕 TAXI! Richtig! 🚕'}
           </div>
 
           {/* Canvas */}
@@ -268,10 +321,14 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
             ref={canvasRef}
             style={{
               borderRadius: 12,
-              border: `2px solid ${phase === 'won' ? colors.green : colors.border}`,
+              border: `2px solid ${
+                feedback?.type === 'error' ? colors.red :
+                phase === 'won' ? colors.green : colors.border
+              }`,
               touchAction: 'none',
-              cursor: phase === 'drawing' && strokes.length < MAX_STROKES ? 'crosshair' : 'default',
+              cursor: phase === 'drawing' && strokes.length < MAX_STROKES && !feedback ? 'crosshair' : 'default',
               maxWidth: '100%',
+              transition: 'border-color 0.3s',
             }}
             onMouseDown={handleStart}
             onMouseMove={handleMove}
@@ -282,79 +339,14 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
             onTouchEnd={handleEnd}
           />
 
-          {/* Controls below canvas */}
-          <div style={{
-            display: 'flex', gap: 10, marginTop: 12,
-            alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center',
-          }}>
-            {phase === 'drawing' && strokes.length > 0 && (
-              <button onClick={handleUndo} style={{
-                fontFamily: fonts.mono, fontSize: 13, color: colors.text,
-                background: colors.bgSecondary, border: `1px solid ${colors.border}`,
-                borderRadius: 6, padding: '8px 16px', cursor: 'pointer', minHeight: 40,
-              }}>
-                ↩ Rückgängig
-              </button>
-            )}
-            {phase === 'drawing' && strokes.length >= MAX_STROKES && (
-              <button onClick={() => setPhase('guessing')} style={{
-                fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
-                color: '#fff', background: colors.blue,
-                border: 'none', borderRadius: 6, padding: '8px 20px',
-                cursor: 'pointer', minHeight: 40,
-              }}>
-                ✓ Fertig — Was ist es?
-              </button>
-            )}
-          </div>
-
-          {/* ─── Guessing Phase ─── */}
-          {phase === 'guessing' && (
+          {/* Error feedback message */}
+          {feedback?.type === 'error' && (
             <div style={{
-              marginTop: 16, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', gap: 10, width: '100%', maxWidth: 320,
+              marginTop: 14, fontSize: 'clamp(13px, 3.5vw, 15px)',
+              color: colors.red, fontWeight: 'bold', textAlign: 'center',
+              animation: 'fadeIn 0.3s ease',
             }}>
-              <input
-                type="text"
-                value={guess}
-                onChange={(e) => { setGuess(e.target.value); setError(''); }}
-                onKeyDown={handleKeyDown}
-                placeholder="Welches Wort siehst du?"
-                autoFocus
-                autoComplete="off"
-                autoCapitalize="off"
-                style={{
-                  fontFamily: fonts.mono, fontSize: 18, fontWeight: 'bold',
-                  textAlign: 'center', width: '100%', padding: '12px 16px',
-                  background: colors.bgSecondary, color: colors.text,
-                  border: `2px solid ${error ? colors.red : colors.border}`,
-                  borderRadius: 8, outline: 'none', letterSpacing: 3,
-                }}
-              />
-              {error && (
-                <div style={{
-                  fontSize: 13, color: colors.red, textAlign: 'center',
-                }}>
-                  {error}
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={handleUndo} style={{
-                  fontFamily: fonts.mono, fontSize: 13, color: colors.text,
-                  background: colors.bgSecondary, border: `1px solid ${colors.border}`,
-                  borderRadius: 6, padding: '8px 16px', cursor: 'pointer', minHeight: 40,
-                }}>
-                  ↩ Strich löschen
-                </button>
-                <button onClick={handleGuess} style={{
-                  fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
-                  color: '#fff', background: colors.blue,
-                  border: 'none', borderRadius: 6, padding: '8px 20px',
-                  cursor: 'pointer', minHeight: 40,
-                }}>
-                  Prüfen
-                </button>
-              </div>
+              {feedback.msg}
             </div>
           )}
 
@@ -365,16 +357,10 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
               alignItems: 'center', gap: 12, width: '100%', maxWidth: 340,
             }}>
               <div style={{
-                fontSize: 'clamp(18px, 5vw, 24px)', color: colors.green,
-                fontWeight: 'bold', letterSpacing: 2,
-              }}>
-                🚕 TAXI! 🚕
-              </div>
-              <div style={{
                 fontSize: 13, color: colors.textMuted, textAlign: 'center',
                 lineHeight: 1.6,
               }}>
-                Genau! Die Striche ergeben das Wort TAXI.
+                Die Striche ergeben das Wort TAXI.
               </div>
               <div style={{
                 background: 'rgba(46, 160, 67, 0.15)',
@@ -395,18 +381,17 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
                   {matrixClue || 'MATRIX CLUE'}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                {onBack && (
-                  <button onClick={onBack} style={{
-                    fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
-                    color: '#fff', background: colors.greenDark,
-                    border: `1px solid ${colors.green}`, borderRadius: 6,
-                    padding: '10px 24px', cursor: 'pointer', minHeight: 44,
-                  }}>
-                    ← Zurück
-                  </button>
-                )}
-              </div>
+              {onBack && (
+                <button onClick={onBack} style={{
+                  fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
+                  color: '#fff', background: colors.greenDark,
+                  border: `1px solid ${colors.green}`, borderRadius: 6,
+                  padding: '10px 24px', cursor: 'pointer', minHeight: 44,
+                  marginTop: 8,
+                }}>
+                  ← Zurück zu den Rätseltruhen
+                </button>
+              )}
             </div>
           )}
         </>

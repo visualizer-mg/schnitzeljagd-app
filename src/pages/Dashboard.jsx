@@ -24,7 +24,7 @@ const PLAYER_PUZZLES = {
     { id: 'mark-2', label: 'Rätsel 2', solvedLabel: 'Periodensystem', game: 'periodensystem', replayLabel: '📋 Ergebnis nochmal ansehen' },
   ],
   ellen: [
-    { id: 'ellen-1', label: 'Käse-Jagd', game: 'cheese', matrixClue: 'C1: 3 - 8 - 4 - 6 - 1 - 2' },
+    { id: 'ellen-1', label: 'Rätseltruhe 1', solvedLabel: 'Das Weisslacker-Massaker', chained: true, password: 'DasWeisslackerMassaker', caseSensitive: true, taunt: 'Ellen, du brauchst das richtige Passwort! Vielleicht hilft dir ein besonderes Licht weiter...', game: 'cheese', matrixClue: 'C1: 3 - 8 - 4 - 6 - 1 - 2' },
   ],
   theresa: [
     { id: 'theresa-1', label: 'Himmelsritt', game: 'horse', matrixClue: 'C6: 7 - 8 - 2 - 6' },
@@ -319,6 +319,7 @@ export default function Dashboard({ player, onLogout }) {
                       locked={isLocked}
                       chained={alreadyOpened ? false : (puzzle.chained || false)}
                       password={puzzle.password || ''}
+                      caseSensitive={puzzle.caseSensitive || false}
                       taunt={puzzle.taunt || ''}
                       alreadyOpened={alreadyOpened}
                       solved={isSolved}

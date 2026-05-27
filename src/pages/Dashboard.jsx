@@ -9,6 +9,7 @@ import BrauneSosseGame from '../components/BrauneSosseGame';
 import MemoryGame from '../components/MemoryGame';
 import PuzzleGame from '../components/PuzzleGame';
 import PeriodensystemGame from '../components/PeriodensystemGame';
+import TaxiDrawGame from '../components/TaxiDrawGame';
 
 // Puzzles per player — first chest = game
 // chained: true → needs password before chest can be opened
@@ -28,6 +29,7 @@ const PLAYER_PUZZLES = {
   ],
   theresa: [
     { id: 'theresa-1', label: 'Himmelsritt', game: 'horse', matrixClue: 'C6: 7 - 8 - 2 - 6' },
+    { id: 'theresa-2', label: 'Rätsel 2', solvedLabel: '3-Striche-Rätsel', game: 'taxi-draw', matrixClue: 'C14: 7 - 4 - 3 - 8' },
   ],
   beate: [
     { id: 'beate-1', label: 'Braune Soße Memory', game: 'braune-sosse', matrixClue: 'C5: 2 - 6 - 5 - 4 - 1 - 3' },
@@ -181,6 +183,9 @@ export default function Dashboard({ player, onLogout }) {
           )}
           {activeGame.game === 'periodensystem' && (
             <PeriodensystemGame onWin={() => handleGameWin(activeGame.puzzleId)} onBack={() => setActiveGame(null)} showResult={activeGame.showResult || false} />
+          )}
+          {activeGame.game === 'taxi-draw' && (
+            <TaxiDrawGame matrixClue="C14: 7 - 4 - 3 - 8" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
           )}
         </div>
       </div>

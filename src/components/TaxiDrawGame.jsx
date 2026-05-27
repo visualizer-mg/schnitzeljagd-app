@@ -15,6 +15,8 @@ const I_DOT = { x: 290, y: 130, radius: 5 };
 
 const MAX_STROKES = 3;
 const SFX_ERROR = '/assets/error-buzz.mp3';
+const SFX_WIN = '/assets/chest-open.wav';
+const MUSIC_INDIANA = './assets/taxi-sounds/indiana.wav';
 
 // ─── Validation zones for the 3 missing strokes ───
 // Zone T: vertical stem (left area, x ~80-140, tall)
@@ -80,6 +82,26 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
   const [feedback, setFeedback] = useState(null); // { type: 'error', msg: '...' }
   const [winSaved, setWinSaved] = useState(false);
   const errorAudioRef = useRef(null);
+  const musicRef = useRef(null);
+
+  // ─── Music controls ───
+  const startMusic = () => {
+    try {
+      if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
+      const music = new Audio(MUSIC_INDIANA);
+      music.loop = true;
+      music.volume = 0.4;
+      music.play().catch(() => {});
+      musicRef.current = music;
+    } catch (e) {}
+  };
+
+  const stopMusic = () => {
+    if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => () => stopMusic(), []);
 
   // ─── Canvas dimensions (responsive) ───
   const getCanvasSize = useCallback(() => {
@@ -228,6 +250,8 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
         const correct = validateStrokes(newStrokes, canvasSize.scale);
         if (correct) {
           setPhase('won');
+          // Play win sound
+          try { new Audio(SFX_WIN).play().catch(() => {}); } catch (e) {}
           if (onWin && !winSaved) {
             onWin(matrixClue);
             setWinSaved(true);
@@ -289,7 +313,7 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
             </span>
           </div>
           <button
-            onClick={() => setPhase('drawing')}
+            onClick={() => { setPhase('drawing'); startMusic(); }}
             style={{
               fontFamily: fonts.mono, fontSize: 16, fontWeight: 'bold',
               color: '#fff', background: colors.blue,
@@ -313,7 +337,7 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
             textAlign: 'center',
           }}>
             {phase === 'drawing' && '✏️ Male mit 3 Strichen ein Auto!'}
-            {phase === 'won' && '🚕 TAXI! Richtig! 🚕'}
+            {phase === 'won' && '🚕 Sehr gut! 🚕'}
           </div>
 
           {/* Canvas */}
@@ -357,10 +381,11 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
               alignItems: 'center', gap: 12, width: '100%', maxWidth: 340,
             }}>
               <div style={{
-                fontSize: 13, color: colors.textMuted, textAlign: 'center',
+                fontSize: 14, color: colors.textMuted, textAlign: 'center',
                 lineHeight: 1.6,
               }}>
-                Die Striche ergeben das Wort TAXI.
+                Die 3 Striche ergeben das Wort <span style={{ color: colors.yellow, fontWeight: 'bold' }}>TAXI</span> 🚕<br />
+                Ein Auto!
               </div>
               <div style={{
                 background: 'rgba(46, 160, 67, 0.15)',
@@ -382,7 +407,7 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
                 </div>
               </div>
               {onBack && (
-                <button onClick={onBack} style={{
+                <button onClick={() => { stopMusic(); onBack(); }} style={{
                   fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
                   color: '#fff', background: colors.greenDark,
                   border: `1px solid ${colors.green}`, borderRadius: 6,

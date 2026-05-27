@@ -119,31 +119,41 @@ function collidesWall(cx, cy, r) {
 
 // Corner assist — nudge mouse toward cell center to slide around corners
 function cornerAssist(mouseX, mouseY, dx, dy, speed, r) {
-  const nudge = speed * 0.6;
+  // Aggressive corner assist — checks current cell AND neighbors
+  // so the player can smoothly turn into perpendicular corridors
   const cell = pixelToCell(mouseX, mouseY);
-  const center = cellCenter(cell.col, cell.row);
+  const maxReach = CELL * 0.75; // how far we'll look for a valid opening
+  const nudgeSpeed = speed * 1.8; // faster nudge for snappy feel
 
-  // Moving horizontally but stuck? Try nudging vertically toward cell center
+  // Moving horizontally but stuck? Nudge vertically to align with a row opening
   if (dx !== 0 && dy === 0) {
-    const offsetY = center.y - mouseY;
-    if (Math.abs(offsetY) > 1) {
-      const nudgeY = Math.sign(offsetY) * Math.min(nudge, Math.abs(offsetY));
+    for (let dr = -1; dr <= 1; dr++) {
+      const tryRow = cell.row + dr;
+      if (tryRow < 0 || tryRow >= ROWS) continue;
+      const targetY = cellCenter(cell.col, tryRow).y;
+      const dist = Math.abs(targetY - mouseY);
+      if (dist > maxReach || dist < 0.5) continue;
+      const nudgeY = Math.sign(targetY - mouseY) * Math.min(nudgeSpeed, dist);
       if (!collidesWall(mouseX + dx * speed, mouseY + nudgeY, r)) {
         return { x: mouseX + dx * speed, y: mouseY + nudgeY };
       }
     }
   }
-  // Moving vertically but stuck? Try nudging horizontally toward cell center
+  // Moving vertically but stuck? Nudge horizontally to align with a column opening
   if (dy !== 0 && dx === 0) {
-    const offsetX = center.x - mouseX;
-    if (Math.abs(offsetX) > 1) {
-      const nudgeX = Math.sign(offsetX) * Math.min(nudge, Math.abs(offsetX));
+    for (let dc = -1; dc <= 1; dc++) {
+      const tryCol = cell.col + dc;
+      if (tryCol < 0 || tryCol >= COLS) continue;
+      const targetX = cellCenter(tryCol, cell.row).x;
+      const dist = Math.abs(targetX - mouseX);
+      if (dist > maxReach || dist < 0.5) continue;
+      const nudgeX = Math.sign(targetX - mouseX) * Math.min(nudgeSpeed, dist);
       if (!collidesWall(mouseX + nudgeX, mouseY + dy * speed, r)) {
         return { x: mouseX + nudgeX, y: mouseY + dy * speed };
       }
     }
   }
-  return null; // no assist needed
+  return null;
 }
 
 // ─── BFS Pathfinding — shortest path from (sc,sr) to (tc,tr) ───
@@ -344,7 +354,7 @@ function DPadButton({ direction, icon, onPress, onRelease, style }) {
 }
 
 // ─── Main Component ───
-export default function CheeseGame({ onWin, matrixClue }) {
+export default function CheeseGame({ onWin, onBack, matrixClue }) {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
   const musicRef = useRef(null);
@@ -605,6 +615,8 @@ export default function CheeseGame({ onWin, matrixClue }) {
           g.running = false;
           g.won = true;
           setGameState('won');
+          // Save progress immediately (doesn't close the screen)
+          if (onWin) onWin(matrixClue || '3 8 4 6 1 2');
           // Restart music from beginning, lower volume for win screen
           if (musicRef.current) {
             musicRef.current.currentTime = 0;
@@ -901,9 +913,9 @@ export default function CheeseGame({ onWin, matrixClue }) {
               >
                 ↻ NOCHMAL
               </button>
-              {onWin && (
+              {(onBack || onWin) && (
                 <button
-                  onClick={() => { try { new Audio(SFX_BURP).play().catch(()=>{}); } catch(e){} stopMusic(); onWin(matrixClue || '3 8 4 6 1 2'); }}
+                  onClick={() => { try { new Audio(SFX_BURP).play().catch(()=>{}); } catch(e){} stopMusic(); if (onBack) onBack(); else if (onWin) onWin(matrixClue || '3 8 4 6 1 2'); }}
                   style={{
                     fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
                     color: '#fff', background: colors.greenDark,

@@ -104,7 +104,7 @@ export default function Dashboard({ player, onLogout }) {
   };
 
   const handleGameWin = async (puzzleId) => {
-    // Mark the puzzle as solved in Supabase
+    // Mark the puzzle as solved in Supabase (but DON'T close the game screen)
     if (puzzleId) {
       const { error } = await supabase.from('progress').upsert({
         player_id: player.id,
@@ -114,10 +114,12 @@ export default function Dashboard({ player, onLogout }) {
       if (error) console.error('❌ Game win upsert failed:', error);
       else console.log('✅ Game solved:', puzzleId);
     }
-
-    setActiveGame(null);
-    // Reload data
+    // Reload data in background (don't close game — user clicks WEITER to leave)
     await loadData();
+  };
+
+  const handleGameClose = () => {
+    setActiveGame(null);
   };
 
   const solvedCount = progress.filter(p => p.status === 'solved').length;
@@ -160,7 +162,7 @@ export default function Dashboard({ player, onLogout }) {
             <XWingGame matrixClue="C10: 5 - 0 - 2 - 8 - 4" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
           {activeGame.game === 'cheese' && (
-            <CheeseGame matrixClue="C1: 3 - 8 - 4 - 6 - 1 - 2" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <CheeseGame matrixClue="C1: 3 - 8 - 4 - 6 - 1 - 2" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
           )}
           {activeGame.game === 'horse' && (
             <HorseGame matrixClue="C6: 7 - 8 - 2 - 6" onWin={() => handleGameWin(activeGame.puzzleId)} />

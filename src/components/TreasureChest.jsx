@@ -471,7 +471,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
                   marginTop: 8,
                   animation: 'fadeSlideIn 0.2s ease',
                 }}>
-                  ❌ Falsches Passwort du Depp
+                  ❌ Falsches Passwort! Versuch's nochmal...
                 </div>
               )}
 

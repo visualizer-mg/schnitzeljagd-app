@@ -926,6 +926,13 @@ export default function ScooterGame({ onWin, matrixClue }) {
         <span>↕ Wischen = Spur wechseln</span>
         <span>Tippen = Springen</span>
       </div>
+      {/* DEBUG: instant win */}
+      <button
+        onClick={() => { stateRef.current.distance = TARGET_KM * 1000; }}
+        style={{ position: 'fixed', bottom: 10, right: 10, zIndex: 9999, opacity: 0.3, fontSize: 10, padding: '4px 8px' }}
+      >
+        🏁 WIN
+      </button>
     </div>
   );
 }

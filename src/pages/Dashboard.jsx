@@ -167,7 +167,7 @@ export default function Dashboard({ player, onLogout }) {
             <CheeseGame matrixClue="C1: 3 - 8 - 4 - 6 - 1 - 2" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
           )}
           {activeGame.game === 'horse' && (
-            <HorseGame matrixClue="C6: 7 - 8 - 2 - 6" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <HorseGame matrixClue="C6: 7 - 8 - 2 - 6" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
           )}
           {activeGame.game === 'scooter' && (
             <ScooterGame matrixClue="D5: 8 - 6 - 3 - 0" onWin={() => handleGameWin(activeGame.puzzleId)} />

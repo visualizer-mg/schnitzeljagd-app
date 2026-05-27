@@ -286,11 +286,34 @@ function drawBackground(ctx, cameraY, heightMeter) {
 }
 
 // ─── Main Component ───
-export default function HorseGame({ onWin, matrixClue }) {
+// ─── Sound paths ───
+const SFX_JUMP = './assets/horse-sounds/jump.mp3';
+const SFX_BOING = './assets/horse-sounds/boing-jump.wav';
+const SFX_BREAK = '/assets/chain-break.wav';
+const SFX_WIN = '/assets/chest-open.wav';
+const MUSIC_BG = './assets/cheese-sounds/happy.mp3';
+
+export default function HorseGame({ onWin, onBack, matrixClue }) {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
   const [height, setHeight] = useState(0);
   const [gameState, setGameState] = useState('start');
+  const musicRef = useRef(null);
+
+  const playSound = (src, vol = 0.5) => {
+    try { const a = new Audio(src); a.volume = vol; a.play().catch(() => {}); } catch (e) {}
+  };
+  const startMusic = () => {
+    try {
+      if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
+      const m = new Audio(MUSIC_BG); m.loop = true; m.volume = 0.4;
+      m.play().catch(() => {}); musicRef.current = m;
+    } catch (e) {}
+  };
+  const stopMusic = () => {
+    if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
+  };
+  useEffect(() => () => stopMusic(), []);
 
   const initGame = useCallback(() => {
     // Generate initial platforms
@@ -328,6 +351,7 @@ export default function HorseGame({ onWin, matrixClue }) {
     initGame();
     setHeight(0);
     setGameState('playing');
+    startMusic();
   }, [initGame]);
 
   useEffect(() => {
@@ -428,6 +452,7 @@ export default function HorseGame({ onWin, matrixClue }) {
               h.vy = BOUNCE_FORCE;
               h.y = p.y - HORSE_H / 2;
               p.broken = true;
+              playSound(SFX_BREAK, 0.4);
               // Crack particles
               for (let i = 0; i < 4; i++) {
                 g.particles.push({
@@ -441,6 +466,7 @@ export default function HorseGame({ onWin, matrixClue }) {
             } else if (p.type === PLAT_HAY) {
               h.vy = HAY_BOUNCE;
               h.y = p.y - HORSE_H / 2;
+              playSound(SFX_BOING, 0.5);
               // Golden burst
               for (let i = 0; i < 8; i++) {
                 g.particles.push({
@@ -454,11 +480,12 @@ export default function HorseGame({ onWin, matrixClue }) {
             } else if (p.type === PLAT_ICE) {
               h.vy = BOUNCE_FORCE;
               h.y = p.y - HORSE_H / 2;
-              // Slide — add horizontal velocity based on movement
               h.vx += (h.vx > 0 ? 1.5 : h.vx < 0 ? -1.5 : (Math.random() - 0.5) * 2);
+              playSound(SFX_JUMP, 0.3);
             } else {
               h.vy = BOUNCE_FORCE;
               h.y = p.y - HORSE_H / 2;
+              playSound(SFX_JUMP, 0.3);
             }
             break;
           }
@@ -494,12 +521,15 @@ export default function HorseGame({ onWin, matrixClue }) {
       if (g.heightMeter >= TARGET_HEIGHT) {
         g.running = false;
         setGameState('won');
+        playSound(SFX_WIN, 0.6);
+        if (onWin) onWin(matrixClue || '7 8 2 6');
       }
 
       // ─── Lose condition — fell below camera ───
       const screenY = h.y + g.cameraY;
       if (screenY > CANVAS_H + 60) {
         g.running = false;
+        stopMusic();
         setGameState('lost');
       }
 
@@ -651,11 +681,11 @@ export default function HorseGame({ onWin, matrixClue }) {
               textAlign: 'center', lineHeight: 1.8, maxWidth: 340, marginBottom: 24,
             }}>
               Erreiche {TARGET_HEIGHT}m Höhe!<br />
-              Steuere mit Maus, Finger oder ←→ / A/D<br /><br />
+              Steuere mit dem Finger.<br /><br />
               <span style={{ color: '#4a7a3d' }}>🟩 Normal</span>{' · '}
               <span style={{ color: '#8B5A2B' }}>🟫 Zerbricht!</span>{' · '}
-              <span style={{ color: '#6CB6FF' }}>🟦 Glatt!</span><br />
-              <span style={{ color: '#4a7a3d' }}>◄► Bewegt sich</span>{' · '}
+              <span style={{ color: '#6CB6FF' }}>🟦 Glatt!</span><br /><br />
+              <span style={{ color: '#4a7a3d' }}>◄► Bewegt sich</span><br />
               <span style={{ color: '#DAA520' }}>🌾 Heuballen = Super-Sprung!</span><br /><br />
               <span style={{ color: colors.orange }}>⚠️ Nicht runterfallen!</span>
             </div>
@@ -686,29 +716,14 @@ export default function HorseGame({ onWin, matrixClue }) {
               GIPFEL ERREICHT!
             </div>
             <div style={{
-              fontFamily: fonts.mono, fontSize: 13, color: colors.textMuted,
-              marginBottom: 20,
+              fontFamily: fonts.mono, fontSize: 'clamp(12px, 3.5vw, 14px)', color: colors.textMuted,
+              textAlign: 'center', lineHeight: 1.7, maxWidth: 320, marginBottom: 20,
+              padding: '0 12px',
             }}>
-              {TARGET_HEIGHT}m — Das Pferd fliegt! 🐴✨
-            </div>
-            <div style={{
-              background: 'rgba(46, 160, 67, 0.15)',
-              border: `1px solid ${colors.green}`,
-              borderRadius: 8, padding: '16px 32px',
-              textAlign: 'center', marginBottom: 20,
-            }}>
-              <div style={{
-                fontFamily: fonts.mono, fontSize: 14, color: colors.textSecondary,
-                marginBottom: 12, lineHeight: 1.5,
-              }}>
-                Herzlichen Glückwunsch!<br />Du hast einen Matrix Clue freigeschaltet:
-              </div>
-              <div style={{
-                fontSize: 24, fontFamily: fonts.mono, fontWeight: 'bold',
-                color: colors.yellow, letterSpacing: 2,
-              }}>
-                {matrixClue || 'C6: 7 - 8 - 2 - 6'}
-              </div>
+              Herzlichen Glückwunsch, du hast es geschafft! 🐴✨<br /><br />
+              Allerdings hast du es noch nicht ganz geschafft den Matrix Clue freizuschalten.<br /><br />
+              <span style={{ color: colors.yellow }}>Dieser ist am schwarzen Pferd versteckt...</span><br />
+              <span style={{ color: colors.textSubtle, fontStyle: 'italic' }}>Hä, welches schwarze Pferd? 🤔</span>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
               <button
@@ -717,19 +732,19 @@ export default function HorseGame({ onWin, matrixClue }) {
                   fontFamily: fonts.mono, fontSize: 13,
                   color: colors.text, background: colors.bgSecondary,
                   border: `1px solid ${colors.border}`, borderRadius: 6,
-                  padding: '8px 20px', cursor: 'pointer',
+                  padding: '8px 20px', cursor: 'pointer', minHeight: 44,
                 }}
               >
                 ↻ NOCHMAL
               </button>
-              {onWin && (
+              {(onBack || onWin) && (
                 <button
-                  onClick={() => onWin(matrixClue || '7 8 2 6')}
+                  onClick={() => { stopMusic(); if (onBack) onBack(); else if (onWin) onWin(matrixClue || '7 8 2 6'); }}
                   style={{
                     fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
                     color: '#fff', background: colors.greenDark,
                     border: `1px solid ${colors.green}`, borderRadius: 6,
-                    padding: '8px 20px', cursor: 'pointer',
+                    padding: '8px 20px', cursor: 'pointer', minHeight: 44,
                   }}
                 >
                   ✓ WEITER

@@ -289,7 +289,7 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
       {/* ─── Intro Screen ─── */}
       {phase === 'intro' && overlay(
         <>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>✏️</div>
+          <div style={{ fontSize: 48, marginBottom: 12, marginTop: -40 }}>✏️</div>
           <div style={{
             fontSize: 'clamp(16px, 5vw, 22px)', color: colors.blue,
             fontWeight: 'bold', letterSpacing: 2, marginBottom: 20,
@@ -306,7 +306,7 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
               Male mit 3 Strichen ein Auto!
             </span><br /><br />
             <span style={{ color: colors.textSubtle, fontSize: 'clamp(11px, 3vw, 12px)' }}>
-              Zeichne mit dem Finger oder der Maus.
+              Du kannst deinen Finger zum Malen benutzen.
             </span>
           </div>
           <button
@@ -382,7 +382,7 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
                 lineHeight: 1.6,
               }}>
                 Die 3 Striche ergeben das Wort <span style={{ color: colors.yellow, fontWeight: 'bold' }}>TAXI</span> 🚕<br />
-                Ein Auto!
+                Ein Auto! 😂
               </div>
               <div style={{
                 background: 'rgba(46, 160, 67, 0.15)',

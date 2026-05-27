@@ -15,7 +15,8 @@ const BASE_STROKES = [
 const MAX_STROKES = 3;
 const SFX_ERROR = '/assets/error-buzz.mp3';
 const SFX_WIN = '/assets/chest-open.wav';
-const MUSIC_INDIANA = './assets/taxi-sounds/indiana.wav';
+const MUSIC_INTRO = './assets/taxi-sounds/intro.wav';
+const MUSIC_DRAW = './assets/taxi-sounds/jeo.mp3';
 
 // ─── Validation zones for the 3 missing strokes ───
 // Zone T: vertical stem (left area, x ~80-140, tall)
@@ -84,10 +85,10 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
   const musicRef = useRef(null);
 
   // ─── Music controls ───
-  const startMusic = () => {
+  const playMusic = (src) => {
     try {
       if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
-      const music = new Audio(MUSIC_INDIANA);
+      const music = new Audio(src);
       music.loop = true;
       music.volume = 0.4;
       music.play().catch(() => {});
@@ -99,8 +100,11 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
     if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
   };
 
-  // Cleanup on unmount
-  useEffect(() => () => stopMusic(), []);
+  // Start intro music on mount
+  useEffect(() => {
+    playMusic(MUSIC_INTRO);
+    return () => stopMusic();
+  }, []);
 
   // ─── Canvas dimensions (responsive) ───
   const getCanvasSize = useCallback(() => {
@@ -306,7 +310,7 @@ export default function TaxiDrawGame({ matrixClue, onWin, onBack }) {
             </span>
           </div>
           <button
-            onClick={() => { setPhase('drawing'); startMusic(); }}
+            onClick={() => { setPhase('drawing'); playMusic(MUSIC_DRAW); }}
             style={{
               fontFamily: fonts.mono, fontSize: 16, fontWeight: 'bold',
               color: '#fff', background: colors.blue,

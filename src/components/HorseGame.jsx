@@ -748,7 +748,7 @@ export default function HorseGame({ onWin, onBack, matrixClue, showResult }) {
                   padding: '8px 20px', cursor: 'pointer', minHeight: 44,
                 }}
               >
-                ↻ NOCHMAL
+                ↻ NOCHMAL SPIELEN
               </button>
               {(onBack || onWin) && (
                 <button

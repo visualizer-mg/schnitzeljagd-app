@@ -415,6 +415,7 @@ export default function CheeseGame({ onWin, onBack, matrixClue }) {
   }, [initGame]);
 
   useEffect(() => {
+    if (gameState === 'start') { stopMusic(); }
     if (gameState !== 'playing') return;
 
     const canvas = canvasRef.current;

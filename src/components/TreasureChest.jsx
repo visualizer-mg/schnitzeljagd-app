@@ -177,7 +177,7 @@ function ChainBreakExplosion({ active }) {
 //   4. Correct password → chain explodes → chest unlockable
 //   5. Click chest → shake → open with dual sparkles
 //
-export default function TreasureChest({ label, locked, chained, password, taunt, onOpen, onUnchain, alreadyOpened, solved, game, onReplay, replayLabel, matrixClue, caseSensitive }) {
+export default function TreasureChest({ label, locked, chained, password, taunt, onOpen, onUnchain, alreadyOpened, solved, game, onReplay, replayLabel, matrixClue, caseSensitive, nearMiss }) {
   const [opened, setOpened] = useState(alreadyOpened || solved || false);
   const [animating, setAnimating] = useState(false);
   const [showSparkles, setShowSparkles] = useState(false);
@@ -189,6 +189,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
   const [showPopup, setShowPopup] = useState(false);
   const [pwInput, setPwInput] = useState('');
   const [pwError, setPwError] = useState(false);
+  const [pwErrorMsg, setPwErrorMsg] = useState('');
 
   const audioRef = useRef(null);
   const errorAudioRef = useRef(null);
@@ -267,11 +268,19 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
         }, 1200);
       }, 1000);
     } else {
-      // Wrong password
+      // Check near miss first
+      const inputLower = pwInput.trim().toLowerCase();
+      let nearMsg = '';
+      if (nearMiss) {
+        Object.entries(nearMiss).forEach(([key, msg]) => {
+          if (inputLower === key.toLowerCase()) nearMsg = msg;
+        });
+      }
       setPwError(true);
+      setPwErrorMsg(nearMsg || '❌ Falsches Passwort! Versuch\'s nochmal...');
       setPwInput('');
       playErrorSound();
-      setTimeout(() => setPwError(false), 1500);
+      setTimeout(() => { setPwError(false); setPwErrorMsg(''); }, 2000);
     }
   };
 
@@ -279,6 +288,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
     setShowPopup(false);
     setPwInput('');
     setPwError(false);
+    setPwErrorMsg('');
   };
 
   const handleChestClick = () => {
@@ -471,7 +481,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
                   marginTop: 8,
                   animation: 'fadeSlideIn 0.2s ease',
                 }}>
-                  ❌ Falsches Passwort! Versuch's nochmal...
+                  {pwErrorMsg}
                 </div>
               )}
 

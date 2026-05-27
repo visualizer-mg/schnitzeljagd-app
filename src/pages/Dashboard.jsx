@@ -10,6 +10,7 @@ import MemoryGame from '../components/MemoryGame';
 import PuzzleGame from '../components/PuzzleGame';
 import PeriodensystemGame from '../components/PeriodensystemGame';
 import TaxiDrawGame from '../components/TaxiDrawGame';
+import TurtleGame from '../components/TurtleGame';
 
 // Puzzles per player — first chest = game
 // chained: true → needs password before chest can be opened
@@ -18,7 +19,7 @@ const PLAYER_PUZZLES = {
   andreas: [
     { id: 'andreas-1', label: 'Rätseltruhe 1', chained: true, password: 'indiana jones', taunt: 'Krame, so einfach isses net! Erstmal korrektes Passwort eingeben!' },
     { id: 'andreas-2', label: 'Rätseltruhe 2', solvedLabel: 'Elephant Scooter Run', chained: true, password: 'elefant', taunt: 'Erstmal das richtige Passwort eingeben, Krame!', game: 'scooter', replayLabel: '📋 Hinweis nochmal ansehen' },
-    { id: 'andreas-3', label: 'Rätseltruhe 3', chained: true, password: 'ninja turtles', taunt: 'Krame, erstmal das richtige Passwort eingeben!' },
+    { id: 'andreas-3', label: 'Rätseltruhe 3', solvedLabel: 'Turtle Match', chained: true, password: 'ninja turtles', taunt: 'Krame, erstmal das richtige Passwort eingeben!', game: 'turtle', matrixClue: '' },
   ],
   mark: [
     { id: 'mark-1', label: 'Rätsel 1', solvedLabel: 'X-Wing Assault', chained: true, password: 'star wars', taunt: 'Mark, so einfach isses net! Erstmal korrektes Passwort eingeben!', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
@@ -186,6 +187,9 @@ export default function Dashboard({ player, onLogout }) {
           )}
           {activeGame.game === 'taxi-draw' && (
             <TaxiDrawGame matrixClue="C14: 7 - 4 - 3 - 8" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
+          )}
+          {activeGame.game === 'turtle' && (
+            <TurtleGame onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} showResult={activeGame.showResult || false} />
           )}
         </div>
       </div>

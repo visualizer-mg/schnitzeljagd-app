@@ -721,6 +721,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         overflow: 'hidden',
         width: '100vw', height: '100vh',
         position: 'fixed', top: 0, left: 0, zIndex: 100,
+        boxSizing: 'border-box',
       }}>
         <style>{`
           @keyframes wohnwagen-drive {
@@ -805,6 +806,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         background: colors.bgPrimary, padding: 20,
         width: '100vw', height: '100vh',
         position: 'fixed', top: 0, left: 0, zIndex: 100,
+        boxSizing: 'border-box',
       }}>
         <div style={{
           fontSize: 48, marginBottom: 12,
@@ -845,6 +847,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         width: '100vw', height: '100vh',
         position: 'fixed', top: 0, left: 0, zIndex: 100,
         overflowY: 'auto',
+        boxSizing: 'border-box',
       }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
         <div style={{
@@ -908,6 +911,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       background: '#000', padding: 0,
       width: '100vw', height: '100vh',
       position: 'fixed', top: 0, left: 0, zIndex: 100,
+      boxSizing: 'border-box',
     }}>
       <canvas
         ref={canvasRef}

@@ -47,11 +47,11 @@ const GRAVITY = 0.4;
 const JUMP_DURATION = 45; // frames
 
 // Game
-const TARGET_KM = 150;
+const TARGET_KM = 100;
 const PIXELS_PER_METER = 0.15; // how fast distance accumulates
 const BASE_SPEED = 3;
-const MAX_SPEED = 6;
-const LIFE_MILESTONES = [50, 100, 125]; // km at which you get a free life
+const MAX_SPEED = 3; // constant speed throughout
+const LIFE_MILESTONES = [30, 60, 85]; // km at which you get a free life
 const MAX_LIVES = 3;
 
 // Obstacles — all sizes +15%
@@ -374,8 +374,8 @@ export default function ScooterGame({ onWin, matrixClue }) {
 
       // ── Speed increases with distance (slower ramp for 500km) ──
       const km = s.distance / 1000;
-      s.speed = Math.min(BASE_SPEED + km * 0.02, MAX_SPEED);
-      s.spawnInterval = Math.max(80 - km * 0.35, 22);
+      s.speed = BASE_SPEED;
+      s.spawnInterval = Math.max(80 - km * 0.2, 50);
 
       // ── Distance (dt-scaled) ──
       s.distance += s.speed * PIXELS_PER_METER * 10 * dt;
@@ -418,7 +418,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
         });
         if (obsType.type === 'auto5') {
           setTimeout(() => {
-            const sfx = new Audio('/assets/cowboy-yeah.wav');
+            const sfx = new Audio('/assets/braune-sosse/kopf_sound.ogg');
             sfx.volume = 0.7;
             sfx.play().catch(() => {});
           }, 300);
@@ -475,7 +475,9 @@ export default function ScooterGame({ onWin, matrixClue }) {
       // ── Move obstacles (dt-scaled) ──
       s.obstacles.forEach(o => {
         const isVehicle = o.type.startsWith('auto');
-        o.x -= s.speed * (isVehicle ? 2.28 : 1.8) * dt;
+        const isWohnwagen = o.type === 'auto5';
+        const speedMult = isWohnwagen ? 1.82 : isVehicle ? 2.28 : 1.8; // Wohnwagen 20% slower than cars
+        o.x -= s.speed * speedMult * dt;
       });
       s.obstacles = s.obstacles.filter(o => o.x + o.w > -20);
 
@@ -698,7 +700,7 @@ export default function ScooterGame({ onWin, matrixClue }) {
     // Animation: 12s total, car goes from right edge (+50vw+400px) to left edge (-50vw-400px)
     // Mid-screen = 50% of animation = 6s. "Kurz davor" = ~5s
     const playPassSound = () => {
-      const sfx = new Audio('/assets/car-passes.wav');
+      const sfx = new Audio('/assets/braune-sosse/kopf_sound.ogg');
       sfx.volume = 0.5;
       sfx.play().catch(() => {});
     };

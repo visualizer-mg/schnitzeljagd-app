@@ -178,7 +178,7 @@ export default function Dashboard({ player, onLogout }) {
             <PuzzleGame matrixClue="C11: 2 - 0 - 5 - 9 - 3" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
           {activeGame.game === 'periodensystem' && (
-            <PeriodensystemGame onWin={() => handleGameWin(activeGame.puzzleId)} onBack={() => setActiveGame(null)} />
+            <PeriodensystemGame onWin={() => handleGameWin(activeGame.puzzleId)} onBack={() => setActiveGame(null)} showResult={activeGame.showResult || false} />
           )}
         </div>
       </div>
@@ -325,8 +325,8 @@ export default function Dashboard({ player, onLogout }) {
                       game={puzzle.game}
                       matrixClue={puzzle.matrixClue}
                       onOpen={() => handleChestOpen(puzzle.id, puzzle.game)}
-                      onReplay={puzzle.game ? () => setActiveGame({ game: puzzle.game, puzzleId: puzzle.id }) : null}
-                      replayLabel={puzzle.replayLabel}
+                      onReplay={puzzle.game ? () => setActiveGame({ game: puzzle.game, puzzleId: puzzle.id, showResult: isSolved && puzzle.replayLabel }) : null}
+                      replayLabel={isSolved ? puzzle.replayLabel : undefined}
                     />
                   );
                 })}

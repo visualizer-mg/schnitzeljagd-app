@@ -39,13 +39,14 @@ const CLOSE_MESSAGES = [
   'Du bist auf der richtigen Spur... aber das ist es noch nicht! 👀',
 ];
 
-export default function PeriodensystemGame({ matrixClue, onWin, onBack }) {
+export default function PeriodensystemGame({ matrixClue, onWin, onBack, showResult }) {
   const [answers, setAnswers] = useState(['', '', '']);
   const [solved, setSolved] = useState([false, false, false]);
   const [feedback, setFeedback] = useState([null, null, null]);
   const [showHint, setShowHint] = useState(false);
-  const [won, setWon] = useState(false);
+  const [won, setWon] = useState(showResult || false);
   const [shakeIdx, setShakeIdx] = useState(null);
+  const [winSaved, setWinSaved] = useState(showResult || false);
 
   const clue = matrixClue || MATRIX_CLUE;
 
@@ -65,8 +66,10 @@ export default function PeriodensystemGame({ matrixClue, onWin, onBack }) {
 
       // Check if all solved
       if (newSolved.every(Boolean)) {
-        setTimeout(() => setWon(true), 800);
-        if (onWin) onWin();
+        setTimeout(() => {
+          setWon(true);
+          setWinSaved(false); // needs saving when going back
+        }, 800);
       }
     } else if (val === 'baumn') {
       const newFeedback = [...feedback];
@@ -139,7 +142,10 @@ export default function PeriodensystemGame({ matrixClue, onWin, onBack }) {
           Vermutlich findest du dort den Matrix-Clue 😊
         </div>
         <button
-          onClick={onBack}
+          onClick={() => {
+            if (!winSaved && onWin) onWin();
+            if (onBack) onBack();
+          }}
           style={{
             marginTop: 32,
             padding: '12px 28px',

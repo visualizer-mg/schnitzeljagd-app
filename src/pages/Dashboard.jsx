@@ -29,7 +29,7 @@ const PLAYER_PUZZLES = {
   ],
   theresa: [
     { id: 'theresa-1', label: 'Rätseltruhe 1', solvedLabel: 'Himmelsritt', chained: true, password: 'pferde', taunt: 'Theresa, erstmal das richtige Passwort eingeben!', nearMiss: { pferd: 'Fast korrekt! Aber die Mehrzahl davon 😉' }, game: 'horse', replayLabel: '📋 Hinweis nochmal ansehen' },
-    { id: 'theresa-2', label: 'Rätsel 2', solvedLabel: '3-Striche-Rätsel', game: 'taxi-draw', matrixClue: 'C14: 7 - 4 - 3 - 8' },
+    { id: 'theresa-2', label: 'Rätseltruhe 2', solvedLabel: '3-Striche-Rätsel', chained: true, password: 'farn', taunt: 'Theresa, erstmal das richtige Passwort eingeben!', game: 'taxi-draw', matrixClue: 'C14: 7 - 4 - 3 - 8' },
   ],
   beate: [
     { id: 'beate-1', label: 'Braune Soße Memory', game: 'braune-sosse', matrixClue: 'C5: 2 - 6 - 5 - 4 - 1 - 3' },

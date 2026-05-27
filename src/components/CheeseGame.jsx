@@ -414,8 +414,10 @@ export default function CheeseGame({ onWin, onBack, matrixClue }) {
     startMusic();
   }, [initGame]);
 
+  // Start music on mount (plays during start screen)
+  useEffect(() => { startMusic(); }, []);
+
   useEffect(() => {
-    if (gameState === 'start') { stopMusic(); }
     if (gameState !== 'playing') return;
 
     const canvas = canvasRef.current;
@@ -896,15 +898,15 @@ export default function CheeseGame({ onWin, onBack, matrixClue }) {
                 Herzlichen Glückwunsch!<br />Du hast einen Matrix Clue freigeschaltet:
               </div>
               <div style={{
-                fontSize: 24, fontFamily: fonts.mono, fontWeight: 'bold',
-                color: colors.yellow, letterSpacing: 2,
+                fontSize: 18, fontFamily: fonts.mono, fontWeight: 'bold',
+                color: colors.yellow, letterSpacing: 1, whiteSpace: 'nowrap',
               }}>
                 {matrixClue || 'C1: 3 - 8 - 4 - 6 - 1 - 2'}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
               <button
-                onClick={() => { try { new Audio(SFX_BURP).play().catch(()=>{}); } catch(e){} startGame(); }}
+                onClick={startGame}
                 style={{
                   fontFamily: fonts.mono, fontSize: 13,
                   color: colors.text, background: colors.bgSecondary,

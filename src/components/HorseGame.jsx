@@ -389,19 +389,19 @@ export default function HorseGame({ onWin, onBack, matrixClue, showResult }) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = CANVAS_W / rect.width;
       const fingerX = (e.touches[0].clientX - rect.left) * scaleX;
-      const delta = fingerX - g.touchAnchor;
-      g.touchAnchor = fingerX;
-      g.touchX = g.horse.x + delta;
+      // Horse target = current horse pos + how far finger moved from anchor
+      g.touchX = g.touchHorseStart + (fingerX - g.touchAnchor);
     };
     const onTouchStart = (e) => {
       if (e.cancelable) e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const scaleX = CANVAS_W / rect.width;
-      // Remember where the finger landed — horse stays put until finger moves
+      // Remember finger start AND horse start — no jump on tap
       g.touchAnchor = (e.touches[0].clientX - rect.left) * scaleX;
-      g.touchX = g.horse.x; // target = current position (no jump)
+      g.touchHorseStart = g.horse.x;
+      g.touchX = g.horse.x;
     };
-    const onTouchEnd = () => { g.touchX = null; g.touchAnchor = null; };
+    const onTouchEnd = () => { g.touchX = null; g.touchAnchor = null; g.touchHorseStart = null; };
     const onMouseMove = (e) => {
       const rect = canvas.getBoundingClientRect();
       const scaleX = CANVAS_W / rect.width;

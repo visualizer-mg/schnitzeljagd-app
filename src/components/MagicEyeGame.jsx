@@ -157,7 +157,7 @@ export default function MagicEyeGame({ matrixClue, onWin, onBack }) {
       flexDirection: 'column',
       alignItems: 'center',
       padding: '24px 16px',
-      paddingTop: 'max(24px, env(safe-area-inset-top))',
+      paddingTop: 'max(70px, calc(env(safe-area-inset-top) + 56px))',
     }}>
       {/* Intro text */}
       <div style={{
@@ -212,7 +212,7 @@ export default function MagicEyeGame({ matrixClue, onWin, onBack }) {
         Tippe auf das Bild für Vollbild
       </div>
 
-      {/* Fullscreen overlay */}
+      {/* Fullscreen overlay — nur Bild, tap to close */}
       {fullscreen && (
         <div
           onClick={() => setFullscreen(false)}
@@ -222,47 +222,11 @@ export default function MagicEyeGame({ matrixClue, onWin, onBack }) {
             zIndex: 99999,
             background: '#000',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
+            cursor: 'pointer',
           }}
         >
-          {/* Close button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setFullscreen(false); }}
-            style={{
-              position: 'absolute',
-              top: 'max(16px, env(safe-area-inset-top))',
-              right: 16,
-              zIndex: 100000,
-              padding: '10px 18px',
-              background: 'rgba(255,255,255,0.15)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              borderRadius: 10,
-              color: '#fff',
-              fontSize: 15,
-              fontWeight: 600,
-              cursor: 'pointer',
-              backdropFilter: 'blur(8px)',
-            }}
-          >
-            ✕ Schließen
-          </button>
-
-          {/* Hint text — rotates with device */}
-          <div style={{
-            position: 'absolute',
-            top: 'max(20px, env(safe-area-inset-top))',
-            left: 16,
-            fontSize: 13,
-            color: 'rgba(255,255,255,0.5)',
-            fontStyle: 'italic',
-            maxWidth: '50%',
-          }}>
-            Die Lösung liegt im Auge des Betrachters... 🔄 Drehe das Handy!
-          </div>
-
-          {/* Image — fills screen, pinch-zoomable on mobile */}
           <img
             src="/assets/magic-eye-puzzle.webp"
             alt="Rätsel Vollbild"

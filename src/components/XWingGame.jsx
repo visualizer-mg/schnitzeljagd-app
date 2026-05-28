@@ -28,11 +28,11 @@ const BLAST_WALL_SPEED = CANVAS_H / 60; // crosses screen in ~1 sec at 60fps
 const BLAST_WALL_H = 30; // height of the fire wall
 
 // ─── Boss config ───
-const BOSS_HP = 200;
+const BOSS_HP = 600;
 const BOSS_SIZE = 160;
-const BOSS_FIRE_INTERVAL = 1200; // ms between boss shots
-const BOSS_LASER_SPEED = 2.8;   // slow, dodgeable
-const BOSS_BLAST_DAMAGE = 100;  // rocket does half HP
+const BOSS_FIRE_INTERVAL = 800;  // ms between boss shots (faster)
+const BOSS_LASER_SPEED = 3.8;   // faster but still dodgeable
+const BOSS_BLAST_DAMAGE = 300;  // rocket does half HP
 
 // ─── Preload sprites ───
 function loadImg(src) {

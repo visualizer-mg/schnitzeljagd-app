@@ -121,6 +121,7 @@ export default function XWingGame({ onWin, matrixClue }) {
   const gameRef = useRef(null);
   const imgRef = useRef({ xwing: null, tie: null, boss: null });
   const bossMusicRef = useRef(null);
+  const blasterRef = useRef(null);
   const [score, setScore] = useState(0);
   const [gameState, setGameState] = useState('start');
   const [lives, setLives] = useState(3);
@@ -190,6 +191,15 @@ export default function XWingGame({ onWin, matrixClue }) {
     setGameState('playing');
     setBlastAvailable(true);
     startMusic();
+    // Start blaster loop
+    try {
+      if (blasterRef.current) { blasterRef.current.pause(); blasterRef.current = null; }
+      const bl = new Audio('./assets/blaster.mp3');
+      bl.loop = true;
+      bl.volume = 0.6;
+      bl.play().catch(() => {});
+      blasterRef.current = bl;
+    } catch(e) {}
   }, [initGame]);
 
   useEffect(() => {
@@ -357,7 +367,7 @@ export default function XWingGame({ onWin, matrixClue }) {
             setLives(g.lives);
             g.invincibleUntil = now + 800; // brief invincibility
             g.explosions.push({ x: g.player.x, y: g.player.y, start: now });
-            if (g.lives <= 0) { g.running = false; stopMusic(); setGameState('lost'); }
+            if (g.lives <= 0) { g.running = false; stopMusic(); if (blasterRef.current) { blasterRef.current.pause(); blasterRef.current = null; } if (bossMusicRef.current) { bossMusicRef.current.pause(); bossMusicRef.current = null; } setGameState('lost'); }
             return false;
           }
           return true;
@@ -372,7 +382,7 @@ export default function XWingGame({ onWin, matrixClue }) {
             setLives(g.lives);
             g.invincibleUntil = now + 800;
             g.explosions.push({ x: t.x, y: t.y, start: now });
-            if (g.lives <= 0) { g.running = false; stopMusic(); setGameState('lost'); }
+            if (g.lives <= 0) { g.running = false; stopMusic(); if (blasterRef.current) { blasterRef.current.pause(); blasterRef.current = null; } if (bossMusicRef.current) { bossMusicRef.current.pause(); bossMusicRef.current = null; } setGameState('lost'); }
             return false;
           }
           return true;
@@ -415,9 +425,13 @@ export default function XWingGame({ onWin, matrixClue }) {
 
       // ─── Boss Fight Logic ───
       if (g.bossPhase === 'clearing') {
-        // Clear all enemies, stop spawning
+        // Clear all enemies, stop spawning, stop blaster
         g.ties = [];
         g.tieLasers = [];
+        if (blasterRef.current && !g._blasterStopped) {
+          blasterRef.current.pause(); blasterRef.current = null;
+          g._blasterStopped = true;
+        }
         const elapsed_boss = now - g.bossTimer;
         // After 3 seconds, start boss music
         if (elapsed_boss >= 3000 && !g._bossMusicStarted) {
@@ -451,6 +465,13 @@ export default function XWingGame({ onWin, matrixClue }) {
         if (g.boss.y >= 80) {
           g.boss.y = 80;
           g.bossPhase = 'fighting';
+          // Restart blaster sound for boss fight
+          try {
+            const bl = new Audio('./assets/blaster.mp3');
+            bl.loop = true; bl.volume = 0.6;
+            bl.play().catch(() => {});
+            blasterRef.current = bl;
+          } catch(e) {}
         }
       }
 
@@ -529,6 +550,7 @@ export default function XWingGame({ onWin, matrixClue }) {
             if (g.lives <= 0) {
               g.running = false;
               if (bossMusicRef.current) { bossMusicRef.current.pause(); bossMusicRef.current = null; }
+              if (blasterRef.current) { blasterRef.current.pause(); blasterRef.current = null; }
               stopMusic();
               setGameState('lost');
             }
@@ -552,6 +574,7 @@ export default function XWingGame({ onWin, matrixClue }) {
         if (dyingElapsed >= 2000) {
           g.running = false;
           if (bossMusicRef.current) { bossMusicRef.current.pause(); bossMusicRef.current = null; }
+          if (blasterRef.current) { blasterRef.current.pause(); blasterRef.current = null; }
           stopMusic();
           setGameState('won');
         }
@@ -797,6 +820,7 @@ export default function XWingGame({ onWin, matrixClue }) {
       if (g) g.running = false;
       stopMusic();
       if (bossMusicRef.current) { bossMusicRef.current.pause(); bossMusicRef.current = null; }
+      if (blasterRef.current) { blasterRef.current.pause(); blasterRef.current = null; }
     };
   }, [gameState]);
 

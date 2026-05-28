@@ -11,14 +11,14 @@ const TIE_H = 36;
 const LASER_W = 2;
 const LASER_H = 14;
 const STAR_COUNT = 120;
-const KILL_TARGET = 200;
+const KILL_TARGET = 250;
 const FIRE_RATE = 170;
 const TIE_SPAWN_INITIAL = 800;
 const TIE_SPAWN_MIN = 180;
 const TIE_SPEED_INITIAL = 1.8;
-const TIE_SPEED_MAX = 4.2;          // -30% (was 6.0)
-const TIE_FIRE_CHANCE = 0.005;      // -30% (was 0.006→0.008)
-const TIE_LASER_SPEED = 3.0;        // -30% (was 4.2)
+const TIE_SPEED_MAX = 4.8;          // 80% of original 6.0
+const TIE_FIRE_CHANCE = 0.0048;     // 80% of original 0.006
+const TIE_LASER_SPEED = 3.36;       // 80% of original 4.2
 const EXPLOSION_DURATION = 350;
 const HEALTH_DROP_INTERVAL = 50;  // every 50 kills
 const HEALTH_SIZE = 20;
@@ -28,11 +28,11 @@ const BLAST_WALL_SPEED = CANVAS_H / 60; // crosses screen in ~1 sec at 60fps
 const BLAST_WALL_H = 30; // height of the fire wall
 
 // ─── Boss config ───
-const BOSS_HP = 80;
+const BOSS_HP = 200;
 const BOSS_SIZE = 160;
 const BOSS_FIRE_INTERVAL = 1200; // ms between boss shots
 const BOSS_LASER_SPEED = 2.8;   // slow, dodgeable
-const BOSS_BLAST_DAMAGE = 40;   // rocket does half HP
+const BOSS_BLAST_DAMAGE = 100;  // rocket does half HP
 
 // ─── Preload sprites ───
 function loadImg(src) {
@@ -234,9 +234,9 @@ export default function XWingGame({ onWin, matrixClue }) {
       const elapsed = (now - g.startTime) / 1000;
 
       // Difficulty ramp
-      g.spawnRate = Math.max(TIE_SPAWN_MIN, TIE_SPAWN_INITIAL - elapsed * 5.6);  // -30%
-      g.tieSpeed = Math.min(TIE_SPEED_MAX, TIE_SPEED_INITIAL + elapsed * 0.028); // -30%
-      const fireChance = Math.min(0.011, TIE_FIRE_CHANCE + elapsed * 0.00004);    // -30%
+      g.spawnRate = Math.max(TIE_SPAWN_MIN, TIE_SPAWN_INITIAL - elapsed * 6.4);  // 80% of original 8
+      g.tieSpeed = Math.min(TIE_SPEED_MAX, TIE_SPEED_INITIAL + elapsed * 0.032); // 80% of original 0.04
+      const fireChance = Math.min(0.0128, TIE_FIRE_CHANCE + elapsed * 0.000048);  // 80% of original
 
       const isInvincible = now < g.invincibleUntil;
 

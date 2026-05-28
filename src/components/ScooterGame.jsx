@@ -51,7 +51,7 @@ const TARGET_KM = 100;
 const PIXELS_PER_METER = 0.15; // how fast distance accumulates
 const BASE_SPEED = 3;
 const MAX_SPEED = 3; // constant speed throughout
-const LIFE_MILESTONES = [30, 60, 85]; // km at which you get a free life
+const LIFE_MILESTONES = [50, 75]; // km at which you get a free life
 const MAX_LIVES = 3;
 
 // Obstacles — all sizes +15%
@@ -70,6 +70,20 @@ const OBS_TYPES = [
 function drawObstacle(ctx, obs, images) {
   const { type, x, y, w, h } = obs;
   ctx.save();
+
+  // Kopf obstacle (special glow)
+  if (obs.isKopf) {
+    const img = images.kopf;
+    if (img && img.complete) {
+      // Glow effect
+      ctx.shadowColor = '#ff4400';
+      ctx.shadowBlur = 15;
+      ctx.drawImage(img, x, y, w, h);
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+    return;
+  }
 
   // Sprite-based obstacles (vehicles + barrier)
   if (obs.img) {
@@ -189,6 +203,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
     auto4: loadImg('/assets/auto4.webp'),
     auto5: loadImg('/assets/auto5.webp'),
     barrier: loadImg('/assets/barrier.webp'),
+    kopf: loadImg('/assets/kopf.png'),
   });
 
   const initState = useCallback(() => {
@@ -215,6 +230,10 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       livesGiven: [], // which LIFE_MILESTONES have been awarded
       bgZone: 0, // 0=bg1, 1=bg2, 2=bg3
       bgFade: 0, // 0 = no fade, >0 = fading (counts up to BG_FADE_FRAMES)
+      kopfSpawned: [],       // which km milestones spawned kopf (25, 50, 75)
+      lifeLineFlash: 0,      // frames remaining for white life line flash
+      rocketJump: 0,          // remaining rocket jump distance in meters
+      rocketTrail: [],        // visual trail particles
     };
   }, []);
 
@@ -466,16 +485,74 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         }
       }
 
-      // ── Auto-award lives at milestones (50, 100, 125 km) ──
+      // ── Spawn Kopf at 25, 50, 75 km ──
+      const KOPF_KM = [25, 50, 75];
+      KOPF_KM.forEach(milestone => {
+        if (km >= milestone && !s.kopfSpawned.includes(milestone)) {
+          s.kopfSpawned.push(milestone);
+          // Spawn kopf on a random lane (static = same speed as road)
+          const lane = Math.floor(Math.random() * LANE_COUNT);
+          s.obstacles.push({
+            type: 'kopf',
+            w: 55,
+            h: 55,
+            canJump: true,
+            x: CANVAS_W + 20,
+            y: LANE_Y[lane] - 55,
+            lane,
+            isKopf: true,
+          });
+          // Play alarm sound
+          try {
+            const sfx = new Audio('/assets/alarm-call.mp3');
+            sfx.volume = 0.7;
+            sfx.play().catch(() => {});
+          } catch(e) {}
+        }
+      });
+
+      // ── Rocket jump distance boost ──
+      if (s.rocketJump > 0) {
+        const boost = Math.min(s.rocketJump, 50 * dt); // consume over frames
+        s.distance += boost;
+        s.rocketJump -= boost;
+        // Trail particles
+        if (s.frame % 2 === 0) {
+          s.rocketTrail.push({
+            x: ELEPH_X + ELEPH_W / 2 + (Math.random() - 0.5) * 20,
+            y: s.laneY + s.jumpOffsetY + (Math.random() - 0.5) * 10,
+            alpha: 1,
+            size: 4 + Math.random() * 8,
+          });
+        }
+      }
+      // Fade rocket trail
+      s.rocketTrail = s.rocketTrail.filter(p => {
+        p.alpha -= 0.04 * dt;
+        p.x -= s.speed * 2 * dt;
+        p.size *= (1 + 0.02 * dt);
+        return p.alpha > 0;
+      });
+
+      // ── Auto-award lives at milestones ──
       LIFE_MILESTONES.forEach(milestone => {
         if (km >= milestone && !s.livesGiven.includes(milestone) && s.lives < MAX_LIVES) {
           s.lives++;
           s.livesGiven.push(milestone);
+          s.lifeLineFlash = 120; // ~2 seconds
         }
       });
 
+      // Life line flash countdown
+      if (s.lifeLineFlash > 0) s.lifeLineFlash -= dt;
+
       // ── Move obstacles (dt-scaled) ──
       s.obstacles.forEach(o => {
+        if (o.isKopf) {
+          // Kopf: static on road, moves at road speed
+          o.x -= s.speed * 1.8 * dt;
+          return;
+        }
         const isVehicle = o.type.startsWith('auto');
         const isWohnwagen = o.type === 'auto5';
         const speedMult = isWohnwagen ? 1.82 : isVehicle ? 2.28 : 1.8; // Wohnwagen 20% slower than cars
@@ -512,6 +589,22 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
             elephRect.y < oRect.y + oRect.h &&
             elephRect.y + elephRect.h > oRect.y
           ) {
+            // Kopf: rocket jump! +2km, no damage
+            if (o.isKopf && !o._collected) {
+              o._collected = true;
+              o.x = -999; // remove from view
+              s.rocketJump += 2000; // +2km in meters
+              s.jumping = true;
+              s.jumpVel = JUMP_FORCE * 1.5;
+              // Play alarm sound
+              try {
+                const sfx = new Audio('/assets/alarm-call.mp3');
+                sfx.volume = 0.6;
+                sfx.play().catch(() => {});
+              } catch(e) {}
+              continue;
+            }
+
             // Wohnwagen: if jumping and landing on it → bounce off (double-jump)
             if (o.type === 'auto5' && s.jumping && s.jumpVel > 0 && !o._bounced) {
               o._bounced = true;
@@ -606,6 +699,41 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       // ── Road ──
       drawRoad(ctx, s.frame, s.speed);
 
+      // ── Life line flash (white line across road) ──
+      if (s.lifeLineFlash > 0) {
+        const alpha = Math.min(s.lifeLineFlash / 30, 1);
+        ctx.save();
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#fff';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(0, ROAD_TOP + (ROAD_BOTTOM - ROAD_TOP) / 2);
+        ctx.lineTo(CANVAS_W, ROAD_TOP + (ROAD_BOTTOM - ROAD_TOP) / 2);
+        ctx.stroke();
+        // "+1 ❤️" text
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillStyle = `rgba(255, 100, 100, ${alpha})`;
+        ctx.textAlign = 'center';
+        ctx.fillText('+1 ❤️', CANVAS_W / 2, ROAD_TOP - 10);
+        ctx.restore();
+      }
+
+      // ── Rocket trail particles ──
+      for (const p of s.rocketTrail) {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = '#ff8800';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffcc00';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
       // ── Obstacles behind elephant (upper lanes = further from viewer) ──
       const elephLane = s.targetLane;
       s.obstacles.filter(o => o.lane <= elephLane).forEach(o => drawObstacle(ctx, o, imgs));
@@ -651,14 +779,28 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       ctx.lineWidth = 1;
       ctx.strokeRect(10, 10, CANVAS_W - 20, 16);
 
-      // KM markers on bar (every 50km)
-      for (let i = 50; i < TARGET_KM; i += 50) {
+      // KM markers on bar (every 25km)
+      for (let i = 25; i < TARGET_KM; i += 25) {
         const mx = 10 + (CANVAS_W - 20) * (i / TARGET_KM);
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.beginPath();
         ctx.moveTo(mx, 10); ctx.lineTo(mx, 26);
         ctx.stroke();
       }
+      // Mark life milestones with ❤️ icon on bar
+      LIFE_MILESTONES.forEach(m => {
+        const mx = 10 + (CANVAS_W - 20) * (m / TARGET_KM);
+        ctx.font = '8px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('❤️', mx, 8);
+      });
+      // Mark kopf positions with 💀 on bar
+      [25, 50, 75].forEach(m => {
+        const mx = 10 + (CANVAS_W - 20) * (m / TARGET_KM);
+        ctx.font = '7px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('💀', mx, 36);
+      });
 
       // Distance text
       const kmDisplay = Math.min(km, TARGET_KM).toFixed(0);
@@ -685,6 +827,18 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.font = '8px monospace';
       ctx.fillText(zone, CANVAS_W - 12, 54);
+
+      // Rocket jump indicator
+      if (s.rocketJump > 0) {
+        ctx.save();
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillStyle = '#ff8800';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#ff4400';
+        ctx.shadowBlur = 15;
+        ctx.fillText('🚀 ROCKET! +2km', CANVAS_W / 2, ROAD_TOP - 30);
+        ctx.restore();
+      }
 
       if (s.shakeFrames > 0 || s.shakeFrames === 0) {
         ctx.restore();
@@ -734,6 +888,30 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
             100% { transform: translateX(calc(50vw + 400px)); opacity: 1; }
           }
         `}</style>
+        <style>{`
+          @keyframes kopf-roll {
+            0%   { transform: translateX(calc(50vw + 100px)) rotate(0deg); }
+            100% { transform: translateX(calc(-50vw - 100px)) rotate(-720deg); }
+          }
+        `}</style>
+        {/* Rolling Kopf above everything */}
+        <div style={{
+          width: '100%', height: 60, position: 'relative',
+          overflow: 'hidden', marginBottom: 8,
+        }}>
+          <img
+            src="/assets/kopf.png"
+            alt="Kopf"
+            style={{
+              position: 'absolute',
+              top: 5,
+              left: '50%',
+              width: 50,
+              height: 50,
+              animation: 'kopf-roll 4s linear infinite',
+            }}
+          />
+        </div>
         <img
           src="/assets/elephant-scooter.webp"
           alt="Elephant Scooter"
@@ -754,7 +932,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
           <span style={{ color: colors.accent, fontWeight: 'bold' }}>
             Schaffe {TARGET_KM} km um Geheimcode freizuschalten!
           </span><br />
-          Extra-Leben bei {LIFE_MILESTONES.join(', ')} km ❤️
+          Extra-Leben bei {LIFE_MILESTONES.join(' & ')} km ❤️
         </div>
         <button
           onClick={startGame}
@@ -821,9 +999,10 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         </div>
         <div style={{
           fontFamily: fonts.mono, fontSize: 13, color: colors.textMuted,
-          marginBottom: 24,
+          marginBottom: 24, textAlign: 'center', lineHeight: 1.6,
         }}>
-          Du hast {km} km geschafft
+          Du hast nur lächerliche {km} km geschafft...<br />
+          Reiss dich zusammen man! 😤
         </div>
         <button
           onClick={startGame}

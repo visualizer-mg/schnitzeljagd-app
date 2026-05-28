@@ -32,7 +32,7 @@ const WRONG_INGREDIENTS = [
 
 const ALL_INGREDIENTS = [...CORRECT_INGREDIENTS, ...WRONG_INGREDIENTS];
 
-const LEVEL_TARGETS = { 1: 5, 2: 7 };
+const LEVEL_TARGETS = { 1: 5, 2: 11 };
 const MAX_LIVES = 3;
 
 // ─── Canvas sizing ───
@@ -88,6 +88,10 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
   const pausedRef = useRef(false);
   const [showGameOver, setShowGameOver] = useState(false);
 
+  // ─── Attack of the Krame state ───
+  const [attackPhase, setAttackPhase] = useState(null); // null | 'warning' | 'attacking' | 'done'
+  const attackTriggeredRef = useRef([]); // which thresholds have been triggered
+
   // ─── Audio refs ───
   const musicRef = useRef(null);
   const sword1Ref = useRef(null);
@@ -98,6 +102,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
   const successRef = useRef(null);
   const hugeWinRef = useRef(null);
   const kopfRef = useRef(null);
+  const attackSoundRef = useRef(null);
 
   // ─── Image loading ───
   const imagesRef = useRef({});
@@ -148,6 +153,9 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     kopfRef.current = new Audio(ASSET_BASE + 'kopf_sound.ogg');
     kopfRef.current.volume = 0.8;
 
+    attackSoundRef.current = new Audio(ASSET_BASE + 'attack_krame.ogg');
+    attackSoundRef.current.volume = 0.9;
+
     return () => {
       if (musicRef.current) { musicRef.current.pause(); musicRef.current = null; }
     };
@@ -186,6 +194,12 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       explosions: [],     // particle explosions
       slicedItems: [],
       comboText: [],
+      // Attack of the Krame
+      attackMode: null,       // null | 'warning' | 'spawning' | 'done'
+      attackWarningTimer: 0,
+      attackSpawnCount: 0,    // how many köpfe spawned so far in this attack
+      attackSpawnTimer: 0,
+      attackTriggered: [],    // which thresholds (55, 100) have been triggered
     };
   }, []);
 
@@ -367,13 +381,17 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
     let isBomb = false;
     let isKopf = false;
 
+    // Double kopf rate after 55 total collected in level 2
+    const totalInLevel = Object.values(s.collected).reduce((sum, v) => sum + v, 0);
+    const kopfChance = (s.level === 2 && totalInLevel >= 55) ? 0.24 : 0.12;
+
     if (r < 0.12) {
       // 12% chance bomb
       isBomb = true;
-    } else if (r < 0.24) {
-      // 12% chance kopf
+    } else if (r < 0.12 + kopfChance) {
+      // 12% (or 24% after 55) chance kopf
       isKopf = true;
-    } else if (r < 0.40) {
+    } else if (r < 0.12 + kopfChance + 0.16) {
       // 16% chance wrong ingredient
       ingredient = WRONG_INGREDIENTS[Math.floor(Math.random() * WRONG_INGREDIENTS.length)];
     } else {
@@ -563,10 +581,83 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       s.lastTs = timestamp;
       const dt = Math.min(rawDt, 33.3) / 16.667;
 
-      // ── Spawn ──
+      // ── Attack of the Krame check (level 2 only) ──
+      if (s.level === 2 && !s.gameOver && !s.levelDone) {
+        const totalInLevel = Object.values(s.collected).reduce((sum, v) => sum + v, 0);
+        const ATTACK_THRESHOLDS = [55, 100];
+
+        for (const threshold of ATTACK_THRESHOLDS) {
+          if (totalInLevel >= threshold && !s.attackTriggered.includes(threshold) && !s.attackMode) {
+            s.attackTriggered.push(threshold);
+            s.attackMode = 'warning';
+            s.attackWarningTimer = 0;
+            s.attackSpawnCount = 0;
+            s.attackSpawnTimer = 0;
+            // Play attack sound
+            playSound(attackSoundRef);
+            break;
+          }
+        }
+
+        // Attack warning phase: show text for ~2.5 seconds, no items spawn
+        if (s.attackMode === 'warning') {
+          s.attackWarningTimer += rawDt;
+          if (s.attackWarningTimer >= 2500) {
+            s.attackMode = 'spawning';
+            s.attackSpawnTimer = 0;
+          }
+        }
+
+        // Attack spawning phase: rapid fire 20 köpfe + 1 schokolade after 10
+        if (s.attackMode === 'spawning') {
+          s.attackSpawnTimer += rawDt;
+          if (s.attackSpawnTimer >= 200 && s.attackSpawnCount < 21) { // fast spawn every 200ms
+            s.attackSpawnTimer = 0;
+            const x = 40 + Math.random() * (CANVAS_W - 80);
+            const vy = LAUNCH_VY_MIN + Math.random() * (LAUNCH_VY_MAX - LAUNCH_VY_MIN);
+            const vx = (Math.random() - 0.5) * LAUNCH_VX_RANGE * 2;
+
+            if (s.attackSpawnCount === 10) {
+              // Spawn schokolade after 10 köpfe
+              const schoko = WRONG_INGREDIENTS.find(i => i.key === 'schokolade');
+              s.items.push({
+                x, y: CANVAS_H + 20, vx, vy,
+                rotation: 0, rotSpeed: (Math.random() - 0.5) * 0.1,
+                isBomb: false, isKopf: false, ingredient: schoko,
+                sliced: false, id: Date.now() + Math.random(),
+              });
+            } else {
+              // Spawn kopf
+              s.items.push({
+                x, y: CANVAS_H + 20, vx, vy,
+                rotation: 0, rotSpeed: (Math.random() - 0.5) * 0.1,
+                isBomb: false, isKopf: true, ingredient: null,
+                sliced: false, id: Date.now() + Math.random(),
+              });
+            }
+            s.attackSpawnCount++;
+
+            if (s.attackSpawnCount >= 21) {
+              s.attackMode = 'cooldown';
+              s.attackWarningTimer = 0;
+            }
+          }
+        }
+
+        // Cooldown: wait for attack items to clear, then resume normal
+        if (s.attackMode === 'cooldown') {
+          s.attackWarningTimer += rawDt;
+          if (s.attackWarningTimer >= 2000) {
+            s.attackMode = null;
+          }
+        }
+      }
+
+      // ── Spawn (only when not in attack mode) ──
+      const inAttack = s.attackMode === 'warning' || s.attackMode === 'spawning';
       s.spawnTimer += rawDt;
       const interval = Math.max(SPAWN_INTERVAL_MIN, SPAWN_INTERVAL_BASE - (s.level - 1) * 100);
-      if (s.spawnTimer >= interval && !s.gameOver && !s.levelDone) {
+      if (s.spawnTimer >= interval && !s.gameOver && !s.levelDone && !inAttack) {
         spawnItem(s);
         s.spawnTimer = 0;
       }
@@ -861,6 +952,44 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
       ctx.textAlign = 'center';
       ctx.fillText(`${totalGot} / ${totalNeeded}`, CANVAS_W / 2, CANVAS_H - 11);
 
+      // ── Attack of the Krame warning overlay ──
+      if (s.attackMode === 'warning') {
+        // Dark overlay
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // Pulsing red glow
+        const pulse = Math.sin(s.attackWarningTimer * 0.008) * 0.3 + 0.3;
+        ctx.fillStyle = `rgba(255, 0, 0, ${pulse})`;
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // Warning text
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // "ACHTUNG!!!"
+        ctx.font = 'bold 42px sans-serif';
+        ctx.fillStyle = '#ff4444';
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 20;
+        ctx.fillText('ACHTUNG!!!', CANVAS_W / 2, CANVAS_H / 2 - 40);
+
+        // "Attack of the Krame!!!"
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillStyle = '#fbbf24';
+        ctx.shadowColor = '#ff8800';
+        ctx.fillText('Attack of the Krame!!!', CANVAS_W / 2, CANVAS_H / 2 + 15);
+
+        // Kopf icon wobble
+        const kopfImg = imagesRef.current['kopf.png'];
+        if (kopfImg && kopfImg.complete) {
+          const wobble = Math.sin(s.attackWarningTimer * 0.01) * 10;
+          ctx.drawImage(kopfImg, CANVAS_W / 2 - 40 + wobble, CANVAS_H / 2 + 50, 80, 80);
+        }
+        ctx.restore();
+      }
+
       // ── Level complete overlay ──
       if (s.levelDone) {
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -1001,8 +1130,8 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             color: 'rgba(255,255,255,0.4)',
             lineHeight: 1.8,
           }}>
-            Level 1–2: Zutaten einsammeln<br />
-            Level 3: Die richtigen in den Topf werfen<br />
+            Level 1–2: Zutaten schneiden<br />
+            Danach: Die richtigen in den Topf werfen<br />
             3 Leben — Bomben kosten ein Leben
           </div>
         </div>
@@ -1029,6 +1158,13 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             touchAction: 'none',
           }}
         />
+        {/* DEBUG: skip to pot */}
+        <button
+          onClick={() => { const s = stateRef.current; if (s) goToPot(s.totalCollected); }}
+          style={{ position: 'fixed', bottom: 10, right: 10, zIndex: 9999, opacity: 0.3, fontSize: 10, padding: '4px 8px' }}
+        >
+          🍲 SKIP
+        </button>
         {showLevelComplete && (
           <div style={{
             position: 'absolute',
@@ -1199,14 +1335,14 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
               color: '#fbbf24',
               margin: '5px 0',
             }}>
-              Level 4 — Der Topf
+              Der Topf
             </h2>
             <p style={{
               fontSize: 14,
               color: 'rgba(255,255,255,0.6)',
               margin: 0,
             }}>
-              Tippe nur die richtigen Zutaten für braune Soße!
+              Welche Zutaten gehören rein? Tippe die richtigen!
             </p>
             <div style={{
               marginTop: 10,
@@ -1254,13 +1390,13 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
                     : item.rejected
                     ? '2px solid #f87171'
                     : '2px solid rgba(255,255,255,0.15)',
-                  borderRadius: 14,
-                  padding: 10,
+                  borderRadius: 10,
+                  padding: 6,
                   textAlign: 'center',
                   cursor: item.inPot ? 'default' : 'pointer',
                   opacity: item.inPot ? 0.6 : 1,
                   transition: 'all 0.3s',
-                  minHeight: 100,
+                  minHeight: 70,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -1271,8 +1407,8 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
                   src={ASSET_BASE + item.img}
                   alt={item.label}
                   style={{
-                    width: 55,
-                    height: 55,
+                    width: 40,
+                    height: 40,
                     objectFit: 'contain',
                     marginBottom: 6,
                   }}
@@ -1323,13 +1459,34 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             Alle Zutaten im Topf!
           </h2>
           <p style={{
-            fontSize: 16,
+            fontSize: 14,
             color: 'rgba(255,255,255,0.7)',
-            margin: '0 0 25px',
+            margin: '0 0 12px',
             lineHeight: 1.5,
           }}>
             Was kommt raus, wenn man diese Zutaten zusammen kocht?
           </p>
+
+          {/* Ingredient list in 2 columns */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 6,
+            marginBottom: 16,
+            width: '100%',
+          }}>
+            {CORRECT_INGREDIENTS.map(ing => (
+              <div key={ing.key} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 8, padding: '5px 8px',
+              }}>
+                <img src={ASSET_BASE + ing.img} alt={ing.label}
+                  style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{ing.label}</span>
+              </div>
+            ))}
+          </div>
 
           <input
             type="text"

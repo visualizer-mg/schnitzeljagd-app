@@ -459,8 +459,9 @@ function SnakeCanvas({ onWin }) {
 
       let newSnake;
       if (foodIdx >= 0) {
-        const growExtra = ec >= 32;
-        newSnake = growExtra ? [nh, ...snake, snake[snake.length - 1]] : [nh, ...snake];
+        // Grow +3 per food (add head + 2 tail duplicates)
+        const tail = snake[snake.length - 1];
+        newSnake = [nh, ...snake, tail, tail];
         const newActive = active.filter((_, i) => i !== foodIdx);
         const occupied = new Set(newSnake.map(s => `${s.x},${s.y}`));
         if (foodQueueRef.current.length > 0) {

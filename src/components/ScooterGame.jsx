@@ -506,12 +506,6 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
           });
           // Pause normal spawns briefly so kopf is alone
           s.lastSpawn = s.frame + 120;
-          // Play WhatsApp sound when kopf appears
-          try {
-            const sfx = new Audio('/assets/kopf-sound.ogg');
-            sfx.volume = 0.8;
-            sfx.play().catch(() => {});
-          } catch(e) {}
         }
       });
 

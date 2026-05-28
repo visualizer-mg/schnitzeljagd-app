@@ -9,6 +9,7 @@ export default function MagicEyeGame({ matrixClue, onWin, onBack }) {
   const [guess, setGuess] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [shaking, setShaking] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const handleSubmit = () => {
     const g = guess.trim().toLowerCase();
@@ -182,22 +183,98 @@ export default function MagicEyeGame({ matrixClue, onWin, onBack }) {
         </div>
       </div>
 
-      {/* Magic Eye Image */}
-      <div style={{
-        width: '100%',
-        maxWidth: 600,
-        borderRadius: 12,
-        overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-        marginBottom: 24,
-      }}>
+      {/* Magic Eye Image — tap to fullscreen */}
+      <div
+        onClick={() => setFullscreen(true)}
+        style={{
+          width: '100%',
+          maxWidth: 600,
+          borderRadius: 12,
+          overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+          marginBottom: 8,
+          cursor: 'pointer',
+        }}
+      >
         <img
           src="/assets/magic-eye-puzzle.webp"
           alt="Rätsel"
           style={{ width: '100%', display: 'block' }}
         />
       </div>
+      <div style={{
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.3)',
+        marginBottom: 24,
+        textAlign: 'center',
+      }}>
+        Tippe auf das Bild für Vollbild
+      </div>
+
+      {/* Fullscreen overlay */}
+      {fullscreen && (
+        <div
+          onClick={() => setFullscreen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            background: '#000',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {/* Close button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setFullscreen(false); }}
+            style={{
+              position: 'absolute',
+              top: 'max(16px, env(safe-area-inset-top))',
+              right: 16,
+              zIndex: 100000,
+              padding: '10px 18px',
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              borderRadius: 10,
+              color: '#fff',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            ✕ Schließen
+          </button>
+
+          {/* Hint text — rotates with device */}
+          <div style={{
+            position: 'absolute',
+            top: 'max(20px, env(safe-area-inset-top))',
+            left: 16,
+            fontSize: 13,
+            color: 'rgba(255,255,255,0.5)',
+            fontStyle: 'italic',
+            maxWidth: '50%',
+          }}>
+            Die Lösung liegt im Auge des Betrachters... 🔄 Drehe das Handy!
+          </div>
+
+          {/* Image — fills screen, pinch-zoomable on mobile */}
+          <img
+            src="/assets/magic-eye-puzzle.webp"
+            alt="Rätsel Vollbild"
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain',
+              touchAction: 'pinch-zoom',
+            }}
+          />
+        </div>
+      )}
 
       {/* Input area */}
       {phase === 'puzzle' && (

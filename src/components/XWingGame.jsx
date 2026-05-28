@@ -839,8 +839,10 @@ export default function XWingGame({ onWin, matrixClue }) {
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', height: '100%', background: colors.bgPrimary,
+      width: '100vw', maxWidth: '100vw', overflow: 'hidden',
+      boxSizing: 'border-box',
     }}>
-      <div style={{ position: 'relative', width: CANVAS_W, maxWidth: '100%' }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: CANVAS_W, overflow: 'hidden' }}>
         <canvas
           ref={canvasRef}
           width={CANVAS_W}

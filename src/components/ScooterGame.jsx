@@ -515,26 +515,61 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         }
       });
 
-      // ── Rocket jump distance boost ──
+      // ── Rocket jump — massive 3km boost, elephant flies off screen ──
       if (s.rocketJump > 0) {
-        const boost = Math.min(s.rocketJump, 50 * dt); // consume over frames
+        // Consume distance fast — entire 3km in ~2 seconds (120 frames)
+        const boost = Math.min(s.rocketJump, 80 * dt);
         s.distance += boost;
         s.rocketJump -= boost;
-        // Trail particles
-        if (s.frame % 2 === 0) {
+
+        // Elephant flies upward off screen during rocket
+        if (!s.rocketFlyY) s.rocketFlyY = 0;
+        s.rocketFlyY = Math.min(s.rocketFlyY + 8 * dt, 500); // fly up fast
+
+        // Speed up background scroll dramatically
+        s.bgScroll += 15 * dt;
+
+        // Clear obstacles during rocket (you're flying!)
+        s.obstacles = [];
+
+        // Lots of trail particles — fire and smoke
+        for (let i = 0; i < 3; i++) {
           s.rocketTrail.push({
-            x: ELEPH_X + ELEPH_W / 2 + (Math.random() - 0.5) * 20,
-            y: s.laneY + s.jumpOffsetY + (Math.random() - 0.5) * 10,
+            x: ELEPH_X + ELEPH_W / 2 + (Math.random() - 0.5) * 40,
+            y: s.laneY - s.rocketFlyY + ELEPH_H + Math.random() * 30,
             alpha: 1,
-            size: 4 + Math.random() * 8,
+            size: 6 + Math.random() * 14,
+            color: Math.random() > 0.5 ? '#ff4400' : '#ffcc00',
           });
         }
+        // Smoke
+        if (s.frame % 3 === 0) {
+          s.rocketTrail.push({
+            x: ELEPH_X + ELEPH_W / 2 + (Math.random() - 0.5) * 60,
+            y: s.laneY - s.rocketFlyY + ELEPH_H + 20 + Math.random() * 20,
+            alpha: 0.6,
+            size: 15 + Math.random() * 20,
+            color: '#888',
+          });
+        }
+
+        // When done, bring elephant back down
+        if (s.rocketJump <= 0) {
+          s.rocketFlyY = 0;
+          s.jumping = false;
+          s.jumpOffsetY = 0;
+          s.jumpVel = 0;
+          s.invincible = 90; // brief invincibility after landing
+        }
+      } else {
+        s.rocketFlyY = 0;
       }
+
       // Fade rocket trail
       s.rocketTrail = s.rocketTrail.filter(p => {
-        p.alpha -= 0.04 * dt;
-        p.x -= s.speed * 2 * dt;
-        p.size *= (1 + 0.02 * dt);
+        p.alpha -= 0.03 * dt;
+        p.x -= s.speed * 3 * dt;
+        p.size *= (1 + 0.03 * dt);
         return p.alpha > 0;
       });
 
@@ -603,13 +638,15 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
             if (o.isKopf && !o._collected) {
               o._collected = true;
               o.x = -999; // remove from view
-              s.rocketJump += 2000; // +2km in meters
+              s.rocketJump += 3000; // +3km rocket boost!
+              s.rocketFlyY = 0;
               s.jumping = true;
-              s.jumpVel = JUMP_FORCE * 1.5;
+              s.jumpVel = JUMP_FORCE * 3; // launch hard
+              s.invincible = 180; // invincible during entire rocket
               // Play alarm sound
               try {
                 const sfx = new Audio('/assets/alarm-call.mp3');
-                sfx.volume = 0.6;
+                sfx.volume = 0.8;
                 sfx.play().catch(() => {});
               } catch(e) {}
               continue;
@@ -709,22 +746,37 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       // ── Road ──
       drawRoad(ctx, s.frame, s.speed);
 
-      // ── Life line flash (thick white line across entire road) ──
+      // ── Life line flash (vertical finish-line stripe across road, scrolls past) ──
       if (s.lifeLineFlash > 0) {
         const alpha = Math.min(s.lifeLineFlash / 30, 1);
+        // Line scrolls from right to left like a road marking
+        const lineX = CANVAS_W * (s.lifeLineFlash / 120); // starts right, moves left
         ctx.save();
-        // Thick glowing white line across the full road width
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
-        ctx.fillRect(0, ROAD_TOP, CANVAS_W, ROAD_BOTTOM - ROAD_TOP);
-        // Brighter center stripe
-        const midY = ROAD_TOP + (ROAD_BOTTOM - ROAD_TOP) / 2;
-        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.lineWidth = 6;
+        // Checkered finish-line pattern (vertical stripe)
+        const stripeW = 12;
+        const checkSize = 10;
+        for (let row = 0; row < Math.ceil((ROAD_BOTTOM - ROAD_TOP) / checkSize); row++) {
+          for (let col = 0; col < Math.ceil(stripeW / checkSize); col++) {
+            const isWhite = (row + col) % 2 === 0;
+            ctx.fillStyle = isWhite
+              ? `rgba(255, 255, 255, ${alpha * 0.9})`
+              : `rgba(0, 0, 0, ${alpha * 0.7})`;
+            ctx.fillRect(
+              lineX - stripeW / 2 + col * checkSize,
+              ROAD_TOP + row * checkSize,
+              checkSize,
+              checkSize
+            );
+          }
+        }
+        // Glow
         ctx.shadowColor = '#fff';
         ctx.shadowBlur = 20;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
+        ctx.lineWidth = stripeW + 6;
         ctx.beginPath();
-        ctx.moveTo(0, midY);
-        ctx.lineTo(CANVAS_W, midY);
+        ctx.moveTo(lineX, ROAD_TOP);
+        ctx.lineTo(lineX, ROAD_BOTTOM);
         ctx.stroke();
         // "+1 ❤️" text above road
         ctx.font = 'bold 28px sans-serif';
@@ -732,7 +784,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         ctx.textAlign = 'center';
         ctx.shadowColor = '#ff0000';
         ctx.shadowBlur = 15;
-        ctx.fillText('+1 ❤️', CANVAS_W / 2, ROAD_TOP - 15);
+        ctx.fillText('+1 ❤️', lineX, ROAD_TOP - 15);
         ctx.restore();
       }
 
@@ -740,14 +792,18 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       for (const p of s.rocketTrail) {
         ctx.save();
         ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = '#ff8800';
+        ctx.fillStyle = p.color || '#ff8800';
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#ffcc00';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2);
-        ctx.fill();
+        // Inner bright core (not for smoke)
+        if (p.color !== '#888') {
+          ctx.fillStyle = '#fff';
+          ctx.globalAlpha = p.alpha * 0.6;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * 0.3, 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.restore();
       }
 
@@ -757,7 +813,8 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
 
       // ── Elephant ──
       // Bottom of scooter wheels sits at lane center
-      const ey = s.laneY + s.jumpOffsetY;
+      const rocketFly = s.rocketFlyY || 0;
+      const ey = s.laneY + s.jumpOffsetY - rocketFly;
       const elephDrawY = ey - ELEPH_H; // draw from top, so bottom aligns with lane center
 
       // Shadow — always visible, shrinks when jumping (max 33% smaller)
@@ -853,7 +910,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         ctx.textAlign = 'center';
         ctx.shadowColor = '#ff4400';
         ctx.shadowBlur = 15;
-        ctx.fillText('🚀 ROCKET! +2km', CANVAS_W / 2, ROAD_TOP - 30);
+        ctx.fillText('🚀 RAKETENBOOST! +3km', CANVAS_W / 2, ROAD_TOP - 30);
         ctx.restore();
       }
 

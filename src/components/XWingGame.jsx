@@ -516,9 +516,10 @@ export default function XWingGame({ onWin, matrixClue }) {
           return true;
         });
 
-        // Collision: blast wall → boss (half HP damage!)
-        if (g.blastWall && g.boss) {
+        // Collision: blast wall → boss (half HP damage, ONE hit only!)
+        if (g.blastWall && g.boss && !g.blastWall._hitBoss) {
           if (g.blastWall.y <= g.boss.y + BOSS_SIZE / 2) {
+            g.blastWall._hitBoss = true; // only hit once
             g.boss.hp -= BOSS_BLAST_DAMAGE;
             g.bossHitFlash = 15;
             g.explosions.push({ x: g.boss.x - 40, y: g.boss.y, start: now });

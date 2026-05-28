@@ -16,9 +16,9 @@ const FIRE_RATE = 170;
 const TIE_SPAWN_INITIAL = 800;
 const TIE_SPAWN_MIN = 180;
 const TIE_SPEED_INITIAL = 1.8;
-const TIE_SPEED_MAX = 6.0;
-const TIE_FIRE_CHANCE = 0.006;   // slightly toned down from 0.008
-const TIE_LASER_SPEED = 4.2;     // slightly slower (was 5)
+const TIE_SPEED_MAX = 4.2;          // -30% (was 6.0)
+const TIE_FIRE_CHANCE = 0.005;      // -30% (was 0.006→0.008)
+const TIE_LASER_SPEED = 3.0;        // -30% (was 4.2)
 const EXPLOSION_DURATION = 350;
 const HEALTH_DROP_INTERVAL = 50;  // every 50 kills
 const HEALTH_SIZE = 20;
@@ -207,9 +207,9 @@ export default function XWingGame({ onWin, matrixClue }) {
       const elapsed = (now - g.startTime) / 1000;
 
       // Difficulty ramp
-      g.spawnRate = Math.max(TIE_SPAWN_MIN, TIE_SPAWN_INITIAL - elapsed * 8);
-      g.tieSpeed = Math.min(TIE_SPEED_MAX, TIE_SPEED_INITIAL + elapsed * 0.04);
-      const fireChance = Math.min(0.016, TIE_FIRE_CHANCE + elapsed * 0.00006);
+      g.spawnRate = Math.max(TIE_SPAWN_MIN, TIE_SPAWN_INITIAL - elapsed * 5.6);  // -30%
+      g.tieSpeed = Math.min(TIE_SPEED_MAX, TIE_SPEED_INITIAL + elapsed * 0.028); // -30%
+      const fireChance = Math.min(0.011, TIE_FIRE_CHANCE + elapsed * 0.00004);    // -30%
 
       const isInvincible = now < g.invincibleUntil;
 

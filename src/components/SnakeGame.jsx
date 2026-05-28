@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 // ═══════════════════════════════════════════════════════
 
 const SNAKE_COLS = 32;
-const SNAKE_ROWS = 48;
+const SNAKE_ROWS = 32;
 const SNAKE_TICK_MS = 120;
 const SNAKE_TOTAL_FOOD = 64;
 const SNAKE_VISIBLE_FOOD = 2;
@@ -248,7 +248,7 @@ function SnakeCanvas({ onWin }) {
   const foodImgsRef = useRef({});
   const allFoodImages = useRef([...CARD_IMAGES, ...CARD_IMAGES, ...CARD_IMAGES, ...CARD_IMAGES]);
 
-  const INIT_SNAKE = [{ x: 16, y: 24 }, { x: 15, y: 24 }, { x: 14, y: 24 }];
+  const INIT_SNAKE = [{ x: 16, y: 16 }, { x: 15, y: 16 }, { x: 14, y: 16 }];
   const snakeRef = useRef([...INIT_SNAKE]);
   const dirRef = useRef({ x: 1, y: 0 });
   const foodQueueRef = useRef([]);

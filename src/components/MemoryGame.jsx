@@ -4,7 +4,7 @@ import { colors, fonts } from '../theme';
 // ═══════════════════════════════════════════════════════
 // MEMORY GAME — Andrea
 // Level 1: Klassisches Memory (16 Paare, 4×8 Grid)
-// Level 2: Simon Says (3 → 5 Karten merken)
+// Level 2: Simon Says (3 → 5 → 7 Karten merken)
 // Matrix-Clue D2: 7, 8, 1, 2
 // ═══════════════════════════════════════════════════════
 
@@ -75,7 +75,7 @@ const ROWS = 8;
 const TOTAL = COLS * ROWS;
 
 // Simon Says
-const SIMON_ROUNDS = [3, 5];
+const SIMON_ROUNDS = [3, 5, 7];
 const SIMON_FLASH_DURATION = 800;
 const SIMON_PAUSE = 400;
 
@@ -450,7 +450,7 @@ export default function MemoryGame({ matrixClue, onWin }) {
         <div style={{ fontSize: 11, color: colors.textSubtle, fontFamily: fonts.mono, marginTop: 2 }}>
           {gamePhase === 'memory' && 'Level 1 — Finde alle 16 Paare!'}
           {gamePhase === 'simon' && `Level 2 — Runde ${simonRound + 1}/${SIMON_ROUNDS.length}: Merk dir ${SIMON_ROUNDS[Math.min(simonRound, SIMON_ROUNDS.length - 1)]} Karten!`}
-          {gamePhase === 'won' && 'Beide Level gemeistert!'}
+          {gamePhase === 'won' && 'Alle Level gemeistert!'}
         </div>
       </div>
 
@@ -585,12 +585,22 @@ export default function MemoryGame({ matrixClue, onWin }) {
             <div style={{
               padding: '12px 16px', background: 'rgba(255, 166, 87, 0.08)',
               border: '1px solid rgba(255, 166, 87, 0.3)', borderRadius: 10, marginBottom: 20,
+              textAlign: 'left',
             }}>
-              <div style={{ fontSize: 13, color: colors.orange, fontWeight: 600, marginBottom: 6 }}>
-                ...aber das war erst Level 1
+              <div style={{ fontSize: 13, color: colors.orange, fontWeight: 600, marginBottom: 8 }}>
+                ...aber das war erst Level 1!
               </div>
-              <div style={{ fontSize: 12, color: colors.textMuted, lineHeight: 1.5 }}>
-                Die Karten drehen sich wieder um. Merk dir die Reihenfolge in der sie aufleuchten!
+              <div style={{ fontSize: 12, color: colors.textMuted, lineHeight: 1.6 }}>
+                Jetzt wird's knifflig! Die Karten drehen sich wieder um.
+              </div>
+              <div style={{ fontSize: 12, color: colors.text, lineHeight: 1.6, marginTop: 8 }}>
+                <strong>So funktioniert's:</strong>
+              </div>
+              <div style={{ fontSize: 12, color: colors.textMuted, lineHeight: 1.7, marginTop: 4 }}>
+                • Einige Karten leuchten nacheinander auf<br/>
+                • Merk dir die Reihenfolge!<br/>
+                • Tippe sie dann in der gleichen Reihenfolge an<br/>
+                • 3 Runden: erst 3, dann 5, dann 7 Karten
               </div>
             </div>
             <button onClick={startSimon} style={{

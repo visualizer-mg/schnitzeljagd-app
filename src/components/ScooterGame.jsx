@@ -932,7 +932,10 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
           <span style={{ color: colors.accent, fontWeight: 'bold' }}>
             Schaffe {TARGET_KM} km um Geheimcode freizuschalten!
           </span><br />
-          Extra-Leben bei {LIFE_MILESTONES.join(' & ')} km ❤️
+          Extra-Leben bei {LIFE_MILESTONES.join(' & ')} km ❤️<br />
+          <span style={{ color: '#ff8800' }}>
+            🚀 Fahre in den großen Mostkopf rein für einen Raketenboost!
+          </span>
         </div>
         <button
           onClick={startGame}

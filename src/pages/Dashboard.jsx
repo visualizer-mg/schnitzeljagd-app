@@ -12,6 +12,7 @@ import PeriodensystemGame from '../components/PeriodensystemGame';
 import TaxiDrawGame from '../components/TaxiDrawGame';
 import TurtleGame from '../components/TurtleGame';
 import IndianaJonesGame from '../components/IndianaJonesGame';
+import MagicEyeGame from '../components/MagicEyeGame';
 
 // Puzzles per player — first chest = game
 // chained: true → needs password before chest can be opened
@@ -35,6 +36,7 @@ const PLAYER_PUZZLES = {
   ],
   beate: [
     { id: 'beate-1', label: 'Braune Soße Memory', game: 'braune-sosse', matrixClue: 'C5: 2 - 6 - 5 - 4 - 1 - 3' },
+    { id: 'beate-2', label: 'Rätseltruhe 2', solvedLabel: 'Gelöst!', game: 'magic-eye', matrixClue: 'C13: 6 - 3 - 9 - 2 - 4' },
   ],
   andrea: [
     { id: 'andrea-1', label: 'Memory-Spiel', game: 'memory', matrixClue: 'D2: 7 - 8 - 1 - 2' },
@@ -194,6 +196,9 @@ export default function Dashboard({ player, onLogout }) {
           )}
           {activeGame.game === 'indiana-jones' && (
             <IndianaJonesGame matrixClue="C4: 3 - 0 - 7 - 2 - 8 - 4 - 1" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} showResult={activeGame.showResult || false} />
+          )}
+          {activeGame.game === 'magic-eye' && (
+            <MagicEyeGame matrixClue="C13: 6 - 3 - 9 - 2 - 4" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
           )}
         </div>
       </div>

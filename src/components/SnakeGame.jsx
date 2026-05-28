@@ -608,7 +608,7 @@ function SnakeCanvas({ onWin }) {
             <div style={{ fontSize: 14, color: '#f87171', fontFamily: 'monospace', marginBottom: 12 }}>
               Crash! {eatenCount}/{SNAKE_TOTAL_FOOD} gefressen
             </div>
-            <button onClick={restart} style={{
+            <button onTouchEnd={(e) => { e.stopPropagation(); restart(); }} onClick={restart} style={{
               padding: '8px 20px', background: SNAKE_COLOR, color: '#000',
               border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700,
               cursor: 'pointer',

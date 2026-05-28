@@ -490,22 +490,26 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       KOPF_KM.forEach(milestone => {
         if (km >= milestone && !s.kopfSpawned.includes(milestone)) {
           s.kopfSpawned.push(milestone);
-          // Spawn kopf on a random lane (static = same speed as road)
+          // Spawn kopf on a random lane, well ahead of any other obstacles
           const lane = Math.floor(Math.random() * LANE_COUNT);
+          // Remove any obstacles near the spawn point so kopf is clearly visible
+          s.obstacles = s.obstacles.filter(o => o.x < CANVAS_W - 100);
           s.obstacles.push({
             type: 'kopf',
-            w: 55,
-            h: 55,
-            canJump: true,
-            x: CANVAS_W + 20,
-            y: LANE_Y[lane] - 55,
+            w: 150,
+            h: 150,
+            canJump: false,
+            x: CANVAS_W + 200, // spawn far ahead so it's not behind something
+            y: LANE_Y[lane] - 120, // offset for bigger size
             lane,
             isKopf: true,
           });
-          // Play alarm sound
+          // Pause normal spawns briefly so kopf is alone
+          s.lastSpawn = s.frame + 120;
+          // Play WhatsApp sound when kopf appears
           try {
-            const sfx = new Audio('/assets/alarm-call.mp3');
-            sfx.volume = 0.7;
+            const sfx = new Audio('/assets/kopf-sound.ogg');
+            sfx.volume = 0.8;
             sfx.play().catch(() => {});
           } catch(e) {}
         }
@@ -540,6 +544,12 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
           s.lives++;
           s.livesGiven.push(milestone);
           s.lifeLineFlash = 120; // ~2 seconds
+          // Play life-up sound
+          try {
+            const sfx = new Audio('/assets/life-up.mp3');
+            sfx.volume = 0.7;
+            sfx.play().catch(() => {});
+          } catch(e) {}
         }
       });
 
@@ -699,23 +709,30 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       // ── Road ──
       drawRoad(ctx, s.frame, s.speed);
 
-      // ── Life line flash (white line across road) ──
+      // ── Life line flash (thick white line across entire road) ──
       if (s.lifeLineFlash > 0) {
         const alpha = Math.min(s.lifeLineFlash / 30, 1);
         ctx.save();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
-        ctx.lineWidth = 3;
+        // Thick glowing white line across the full road width
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
+        ctx.fillRect(0, ROAD_TOP, CANVAS_W, ROAD_BOTTOM - ROAD_TOP);
+        // Brighter center stripe
+        const midY = ROAD_TOP + (ROAD_BOTTOM - ROAD_TOP) / 2;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.lineWidth = 6;
         ctx.shadowColor = '#fff';
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 20;
         ctx.beginPath();
-        ctx.moveTo(0, ROAD_TOP + (ROAD_BOTTOM - ROAD_TOP) / 2);
-        ctx.lineTo(CANVAS_W, ROAD_TOP + (ROAD_BOTTOM - ROAD_TOP) / 2);
+        ctx.moveTo(0, midY);
+        ctx.lineTo(CANVAS_W, midY);
         ctx.stroke();
-        // "+1 ❤️" text
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillStyle = `rgba(255, 100, 100, ${alpha})`;
+        // "+1 ❤️" text above road
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillStyle = `rgba(255, 80, 80, ${alpha})`;
         ctx.textAlign = 'center';
-        ctx.fillText('+1 ❤️', CANVAS_W / 2, ROAD_TOP - 10);
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 15;
+        ctx.fillText('+1 ❤️', CANVAS_W / 2, ROAD_TOP - 15);
         ctx.restore();
       }
 

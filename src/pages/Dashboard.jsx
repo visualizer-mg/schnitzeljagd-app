@@ -13,6 +13,7 @@ import TaxiDrawGame from '../components/TaxiDrawGame';
 import TurtleGame from '../components/TurtleGame';
 import IndianaJonesGame from '../components/IndianaJonesGame';
 import MagicEyeGame from '../components/MagicEyeGame';
+import SnakeGame from '../components/SnakeGame';
 
 // Puzzles per player — first chest = game
 // chained: true → needs password before chest can be opened
@@ -26,6 +27,7 @@ const PLAYER_PUZZLES = {
   mark: [
     { id: 'mark-1', label: 'Rätsel 1', solvedLabel: 'X-Wing Assault', chained: true, password: 'star wars', taunt: 'Mark, so einfach isses net! Erstmal korrektes Passwort eingeben!', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
     { id: 'mark-2', label: 'Rätsel 2', solvedLabel: 'Periodensystem', game: 'periodensystem', replayLabel: '📋 Ergebnis nochmal ansehen' },
+    { id: 'mark-3', label: 'Rätseltruhe 3', solvedLabel: 'Gelöst!', game: 'snake', matrixClue: 'D4: 0 - 5 - 3 - 9 - 7 - 4' },
   ],
   ellen: [
     { id: 'ellen-1', label: 'Rätseltruhe 1', solvedLabel: 'Das Weisslacker-Massaker', chained: true, password: 'DasWeisslackerMassaker', caseSensitive: true, taunt: 'Ellen, du brauchst das richtige Passwort! Vielleicht hilft dir ein besonderes Licht weiter...', game: 'cheese', matrixClue: 'C1: 3 - 8 - 4 - 6 - 1 - 2' },
@@ -199,6 +201,9 @@ export default function Dashboard({ player, onLogout }) {
           )}
           {activeGame.game === 'magic-eye' && (
             <MagicEyeGame matrixClue="C13: 6 - 3 - 9 - 2 - 4" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
+          )}
+          {activeGame.game === 'snake' && (
+            <SnakeGame matrixClue="D4: 0 - 5 - 3 - 9 - 7 - 4" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
           )}
         </div>
       </div>

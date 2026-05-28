@@ -32,7 +32,7 @@ const WRONG_INGREDIENTS = [
 
 const ALL_INGREDIENTS = [...CORRECT_INGREDIENTS, ...WRONG_INGREDIENTS];
 
-const LEVEL_TARGETS = { 1: 5, 2: 7, 3: 10 };
+const LEVEL_TARGETS = { 1: 5, 2: 7 };
 const MAX_LIVES = 3;
 
 // ─── Canvas sizing ───
@@ -678,7 +678,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         if (allDone) {
           s.levelDone = true;
           playSound(successRef);
-          if (s.level < 3) {
+          if (s.level < 2) {
             setShowLevelComplete(true);
             setLevelCompleteText(`Level ${s.level} geschafft!`);
             setPendingNextLevel(s.level + 1);
@@ -1001,8 +1001,8 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             color: 'rgba(255,255,255,0.4)',
             lineHeight: 1.8,
           }}>
-            Level 1–3: Zutaten einsammeln<br />
-            Level 4: Die richtigen in den Topf werfen<br />
+            Level 1–2: Zutaten einsammeln<br />
+            Level 3: Die richtigen in den Topf werfen<br />
             3 Leben — Bomben kosten ein Leben
           </div>
         </div>

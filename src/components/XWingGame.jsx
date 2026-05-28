@@ -27,6 +27,13 @@ const MAX_LIVES = 3;
 const BLAST_WALL_SPEED = CANVAS_H / 60; // crosses screen in ~1 sec at 60fps
 const BLAST_WALL_H = 30; // height of the fire wall
 
+// ─── Boss config ───
+const BOSS_HP = 80;
+const BOSS_SIZE = 160;
+const BOSS_FIRE_INTERVAL = 1200; // ms between boss shots
+const BOSS_LASER_SPEED = 2.8;   // slow, dodgeable
+const BOSS_BLAST_DAMAGE = 40;   // rocket does half HP
+
 // ─── Preload sprites ───
 function loadImg(src) {
   const img = new Image();
@@ -112,7 +119,8 @@ function stopMusic() {
 export default function XWingGame({ onWin, matrixClue }) {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
-  const imgRef = useRef({ xwing: null, tie: null });
+  const imgRef = useRef({ xwing: null, tie: null, boss: null });
+  const bossMusicRef = useRef(null);
   const [score, setScore] = useState(0);
   const [gameState, setGameState] = useState('start');
   const [lives, setLives] = useState(3);
@@ -123,13 +131,16 @@ export default function XWingGame({ onWin, matrixClue }) {
   useEffect(() => {
     const xwImg = loadImg('./assets/xwing.png');
     const tieImg = loadImg('./assets/tiefighter.png');
+    const bossImg = loadImg('./assets/kopf.png');
     let loaded = 0;
-    const onLoad = () => { loaded++; if (loaded >= 2) { setImgsLoaded(true); } };
+    const onLoad = () => { loaded++; if (loaded >= 3) { setImgsLoaded(true); } };
     xwImg.onload = onLoad;
     tieImg.onload = onLoad;
-    xwImg.onerror = onLoad; // fallback gracefully
+    bossImg.onload = onLoad;
+    xwImg.onerror = onLoad;
     tieImg.onerror = onLoad;
-    imgRef.current = { xwing: xwImg, tie: tieImg };
+    bossImg.onerror = onLoad;
+    imgRef.current = { xwing: xwImg, tie: tieImg, boss: bossImg };
   }, []);
 
   const initGame = useCallback(() => {
@@ -163,6 +174,12 @@ export default function XWingGame({ onWin, matrixClue }) {
       invincibleUntil: 0, // brief invincibility after hit
       blastWall: null, // { y } — active fire wall moving upward
       blastUsed: false,
+      // Boss fight
+      bossPhase: null,       // null | 'clearing' | 'approaching' | 'fighting' | 'dying'
+      bossTimer: 0,          // timer for clearing phase
+      boss: null,            // { x, y, hp, maxHp, lastFire, targetX }
+      bossLasers: [],        // boss projectiles
+      bossHitFlash: 0,       // flash timer when boss is hit
     };
   }, []);
 
@@ -221,8 +238,8 @@ export default function XWingGame({ onWin, matrixClue }) {
       g.player.x = Math.max(28, Math.min(CANVAS_W - 28, g.player.x));
       g.player.y = Math.max(CANVAS_H * 0.35, Math.min(CANVAS_H - 35, g.player.y));
 
-      // ─── Auto-fire ───
-      if (now - g.lastFire > FIRE_RATE) {
+      // ─── Auto-fire (pause during clearing phase) ───
+      if (now - g.lastFire > FIRE_RATE && g.bossPhase !== 'clearing') {
         g.lasers.push(
           { x: g.player.x - 20, y: g.player.y - 24, speed: 7 },
           { x: g.player.x + 20, y: g.player.y - 24, speed: 7 }
@@ -230,8 +247,8 @@ export default function XWingGame({ onWin, matrixClue }) {
         g.lastFire = now;
       }
 
-      // ─── Spawn TIEs ───
-      if (now - g.lastSpawn > g.spawnRate) {
+      // ─── Spawn TIEs (not during boss) ───
+      if (now - g.lastSpawn > g.spawnRate && !g.bossPhase) {
         const formation = Math.random();
         const spd = g.tieSpeed;
         if (formation < 0.15 && elapsed > 10) {
@@ -309,10 +326,9 @@ export default function XWingGame({ onWin, matrixClue }) {
               g.healthDrops.push({ x: t.x, y: t.y });
               g.nextHealthAt += HEALTH_DROP_INTERVAL;
             }
-            if (g.score >= KILL_TARGET) {
-              g.running = false;
-              stopMusic();
-              setGameState('won');
+            if (g.score >= KILL_TARGET && !g.bossPhase) {
+              g.bossPhase = 'clearing';
+              g.bossTimer = Date.now();
             }
             return false;
           }
@@ -379,10 +395,9 @@ export default function XWingGame({ onWin, matrixClue }) {
               g.healthDrops.push({ x: t.x, y: t.y });
               g.nextHealthAt += HEALTH_DROP_INTERVAL;
             }
-            if (g.score >= KILL_TARGET) {
-              g.running = false;
-              stopMusic();
-              setGameState('won');
+            if (g.score >= KILL_TARGET && !g.bossPhase) {
+              g.bossPhase = 'clearing';
+              g.bossTimer = Date.now();
             }
             return false;
           }
@@ -396,6 +411,155 @@ export default function XWingGame({ onWin, matrixClue }) {
         if (g.blastWall.y + BLAST_WALL_H < 0) {
           g.blastWall = null;
         }
+      }
+
+      // ─── Boss Fight Logic ───
+      if (g.bossPhase === 'clearing') {
+        // Clear all enemies, stop spawning
+        g.ties = [];
+        g.tieLasers = [];
+        const elapsed_boss = now - g.bossTimer;
+        // After 3 seconds, start boss music
+        if (elapsed_boss >= 3000 && !g._bossMusicStarted) {
+          g._bossMusicStarted = true;
+          stopMusic();
+          try {
+            const bm = new Audio('./assets/boss-music.mpeg');
+            bm.loop = true;
+            bm.volume = 0.6;
+            bm.play().catch(() => {});
+            bossMusicRef.current = bm;
+          } catch(e) {}
+        }
+        // After 7 seconds, boss appears
+        if (elapsed_boss >= 7000) {
+          g.bossPhase = 'approaching';
+          g.boss = {
+            x: CANVAS_W / 2,
+            y: -BOSS_SIZE,
+            hp: BOSS_HP,
+            maxHp: BOSS_HP,
+            lastFire: now,
+            targetX: CANVAS_W / 2,
+          };
+        }
+      }
+
+      if (g.bossPhase === 'approaching') {
+        // Boss slides down into view
+        g.boss.y += 1.2;
+        if (g.boss.y >= 80) {
+          g.boss.y = 80;
+          g.bossPhase = 'fighting';
+        }
+      }
+
+      if (g.bossPhase === 'fighting' && g.boss) {
+        // Boss slowly moves side to side, tracking player loosely
+        const bDx = g.player.x - g.boss.x;
+        g.boss.x += bDx * 0.008;
+        g.boss.x = Math.max(BOSS_SIZE / 2 + 10, Math.min(CANVAS_W - BOSS_SIZE / 2 - 10, g.boss.x));
+
+        // Boss fires regularly
+        if (now - g.boss.lastFire > BOSS_FIRE_INTERVAL) {
+          g.boss.lastFire = now;
+          // Fire 3 spread shots
+          const angles = [-0.15, 0, 0.15];
+          angles.forEach(a => {
+            g.bossLasers.push({
+              x: g.boss.x + Math.sin(a) * 30,
+              y: g.boss.y + BOSS_SIZE / 2,
+              dx: Math.sin(a) * 2.5,
+              dy: BOSS_LASER_SPEED,
+            });
+          });
+        }
+
+        // Boss hit flash countdown
+        if (g.bossHitFlash > 0) g.bossHitFlash--;
+
+        // Collision: player lasers → boss
+        g.lasers = g.lasers.filter((l) => {
+          const hitX = Math.abs(l.x - g.boss.x) < BOSS_SIZE * 0.45;
+          const hitY = Math.abs(l.y - g.boss.y) < BOSS_SIZE * 0.45;
+          if (hitX && hitY) {
+            g.boss.hp--;
+            g.bossHitFlash = 5;
+            if (g.boss.hp <= 0) {
+              g.bossPhase = 'dying';
+              g.bossTimer = now;
+              g.explosions.push({ x: g.boss.x, y: g.boss.y, start: now });
+            }
+            return false;
+          }
+          return true;
+        });
+
+        // Collision: blast wall → boss (half HP damage!)
+        if (g.blastWall && g.boss) {
+          if (g.blastWall.y <= g.boss.y + BOSS_SIZE / 2) {
+            g.boss.hp -= BOSS_BLAST_DAMAGE;
+            g.bossHitFlash = 15;
+            g.explosions.push({ x: g.boss.x - 40, y: g.boss.y, start: now });
+            g.explosions.push({ x: g.boss.x + 40, y: g.boss.y, start: now });
+            g.explosions.push({ x: g.boss.x, y: g.boss.y - 30, start: now });
+            if (g.boss.hp <= 0) {
+              g.bossPhase = 'dying';
+              g.bossTimer = now;
+            }
+          }
+        }
+      }
+
+      // Update boss lasers
+      g.bossLasers = g.bossLasers.filter((l) => {
+        l.x += l.dx;
+        l.y += l.dy;
+        return l.y < CANVAS_H + 20 && l.x > -10 && l.x < CANVAS_W + 10;
+      });
+
+      // Collision: boss lasers → player
+      if (!isInvincible && g.bossPhase === 'fighting') {
+        g.bossLasers = g.bossLasers.filter((l) => {
+          if (Math.abs(l.x - g.player.x) < XWING_W * 0.4 && Math.abs(l.y - g.player.y) < XWING_H * 0.4) {
+            g.lives--;
+            setLives(g.lives);
+            g.invincibleUntil = now + 800;
+            g.explosions.push({ x: g.player.x, y: g.player.y, start: now });
+            if (g.lives <= 0) {
+              g.running = false;
+              if (bossMusicRef.current) { bossMusicRef.current.pause(); bossMusicRef.current = null; }
+              stopMusic();
+              setGameState('lost');
+            }
+            return false;
+          }
+          return true;
+        });
+      }
+
+      // Boss dying — explosion sequence then win
+      if (g.bossPhase === 'dying') {
+        const dyingElapsed = now - g.bossTimer;
+        // Multiple explosions over 2 seconds
+        if (dyingElapsed < 2000 && Math.random() < 0.3) {
+          g.explosions.push({
+            x: g.boss.x + (Math.random() - 0.5) * BOSS_SIZE,
+            y: g.boss.y + (Math.random() - 0.5) * BOSS_SIZE,
+            start: now,
+          });
+        }
+        if (dyingElapsed >= 2000) {
+          g.running = false;
+          if (bossMusicRef.current) { bossMusicRef.current.pause(); bossMusicRef.current = null; }
+          stopMusic();
+          setGameState('won');
+        }
+      }
+
+      // During boss, no TIE spawning
+      if (g.bossPhase) {
+        g.ties = g.ties || [];
       }
 
       // ─── Update stars ───
@@ -466,6 +630,77 @@ export default function XWingGame({ onWin, matrixClue }) {
         g.ties.forEach((t) => {
           ctx.fillRect(t.x - TIE_W / 2, t.y - TIE_H / 2, TIE_W, TIE_H);
         });
+      }
+
+      // ─── Boss drawing ───
+      if (g.boss && g.bossPhase !== 'dying') {
+        ctx.save();
+        // Red glow behind boss
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 30 + Math.sin(now * 0.005) * 10;
+        // Hit flash
+        if (g.bossHitFlash > 0) {
+          ctx.globalAlpha = 0.5 + Math.random() * 0.5;
+        }
+        // Draw the Kopf as Death Star
+        if (imgs.boss && imgs.boss.complete) {
+          ctx.drawImage(imgs.boss,
+            g.boss.x - BOSS_SIZE / 2, g.boss.y - BOSS_SIZE / 2,
+            BOSS_SIZE, BOSS_SIZE
+          );
+        }
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+        // HP bar above boss
+        if (g.bossPhase === 'fighting') {
+          const barW = BOSS_SIZE * 1.2;
+          const barH = 8;
+          const barX = g.boss.x - barW / 2;
+          const barY = g.boss.y - BOSS_SIZE / 2 - 18;
+          const hpPct = Math.max(0, g.boss.hp / g.boss.maxHp);
+          // Background
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(barX, barY, barW, barH);
+          // HP fill
+          const hpColor = hpPct > 0.5 ? '#f44336' : hpPct > 0.25 ? '#ff9800' : '#ff1744';
+          ctx.fillStyle = hpColor;
+          ctx.fillRect(barX, barY, barW * hpPct, barH);
+          // Border
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(barX, barY, barW, barH);
+          // Label
+          ctx.font = `bold 9px ${fonts.mono}`;
+          ctx.fillStyle = '#fff';
+          ctx.textAlign = 'center';
+          ctx.fillText(`MOSTKOPF  ${g.boss.hp}/${g.boss.maxHp}`, g.boss.x, barY - 4);
+        }
+        ctx.restore();
+      }
+      // Boss dying — draw shrinking boss
+      if (g.boss && g.bossPhase === 'dying') {
+        const dyingPct = Math.min(1, (now - g.bossTimer) / 2000);
+        const shrink = BOSS_SIZE * (1 - dyingPct);
+        ctx.save();
+        ctx.globalAlpha = 1 - dyingPct;
+        if (imgs.boss && imgs.boss.complete && shrink > 5) {
+          ctx.drawImage(imgs.boss,
+            g.boss.x - shrink / 2, g.boss.y - shrink / 2,
+            shrink, shrink
+          );
+        }
+        ctx.restore();
+      }
+
+      // Boss lasers (red/orange, bigger than TIE lasers)
+      if (g.bossLasers.length > 0) {
+        ctx.fillStyle = '#ff6600';
+        ctx.shadowColor = '#ff4400';
+        ctx.shadowBlur = 12;
+        g.bossLasers.forEach((l) => {
+          ctx.fillRect(l.x - 3, l.y - 8, 6, 16);
+        });
+        ctx.shadowBlur = 0;
       }
 
       // Explosions
@@ -561,6 +796,7 @@ export default function XWingGame({ onWin, matrixClue }) {
       canvas.removeEventListener('touchstart', onMove);
       if (g) g.running = false;
       stopMusic();
+      if (bossMusicRef.current) { bossMusicRef.current.pause(); bossMusicRef.current = null; }
     };
   }, [gameState]);
 

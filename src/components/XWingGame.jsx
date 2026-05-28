@@ -912,9 +912,12 @@ export default function XWingGame({ onWin, matrixClue }) {
             }}>
               Zerstöre {KILL_TARGET} TIE Fighter um den<br />
               Matrix-Clue zu entschlüsseln!<br /><br />
-              Bewege den X-Wing mit Maus / Finger.<br />
+              Bewege den X-Wing mit dem Finger.<br />
               Er feuert automatisch. Du hast {MAX_LIVES} Leben.<br />
-              Alle {HEALTH_DROP_INTERVAL} Kills droppt ein Medkit.
+              Alle {HEALTH_DROP_INTERVAL} Kills droppt ein Medkit.<br /><br />
+              <span style={{ color: '#ff6600', fontWeight: 'bold' }}>
+                Vorsicht vor dem Todeshonk!
+              </span>
             </div>
             <button
               onClick={startGame}

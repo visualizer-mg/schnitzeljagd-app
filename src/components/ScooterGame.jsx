@@ -169,6 +169,7 @@ function loadImg(src) {
 // ─── Main Component ───
 export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
   const canvasRef = useRef(null);
+  const wrapperRef = useRef(null);
   const stateRef = useRef(null);
   const animRef = useRef(null);
   const musicRef = useRef(null);       // title music
@@ -335,15 +336,16 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       }
     };
 
-    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-    canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+    const wrapper = wrapperRef.current || canvas;
+    wrapper.addEventListener('touchstart', onTouchStart, { passive: false });
+    wrapper.addEventListener('touchmove', onTouchMove, { passive: false });
+    wrapper.addEventListener('touchend', onTouchEnd, { passive: false });
     window.addEventListener('keydown', onKeyDown);
 
     return () => {
-      canvas.removeEventListener('touchstart', onTouchStart);
-      canvas.removeEventListener('touchmove', onTouchMove);
-      canvas.removeEventListener('touchend', onTouchEnd);
+      wrapper.removeEventListener('touchstart', onTouchStart);
+      wrapper.removeEventListener('touchmove', onTouchMove);
+      wrapper.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [phase]);
@@ -905,13 +907,16 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
 
   // ─── Playing state — show canvas (fullscreen, centered) ───
   return (
-    <div style={{
+    <div
+      ref={wrapperRef}
+      style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center',
       background: '#000', padding: 0,
       width: '100vw', height: '100vh',
       position: 'fixed', top: 0, left: 0, zIndex: 100,
       boxSizing: 'border-box',
+      touchAction: 'none',
     }}>
       <canvas
         ref={canvasRef}

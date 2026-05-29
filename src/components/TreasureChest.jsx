@@ -177,7 +177,7 @@ function ChainBreakExplosion({ active }) {
 //   4. Correct password → chain explodes → chest unlockable
 //   5. Click chest → shake → open with dual sparkles
 //
-export default function TreasureChest({ label, locked, chained, password, taunt, wrongMsg, onOpen, onUnchain, alreadyOpened, solved, game, onReplay, replayLabel, matrixClue, caseSensitive, nearMiss, isEn }) {
+export default function TreasureChest({ label, locked, chained, password, taunt, wrongMsg, onOpen, onUnchain, alreadyOpened, solved, game, onReplay, onReplay2, replayLabel, replayLabel2, matrixClue, caseSensitive, nearMiss, isEn }) {
   const [opened, setOpened] = useState(alreadyOpened || solved || false);
   const [animating, setAnimating] = useState(false);
   const [showSparkles, setShowSparkles] = useState(false);
@@ -578,6 +578,23 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
                   }}
                 >
                   {replayLabel || (isEn ? '🎮 Play again' : '🎮 Nochmal spielen')}
+                </button>
+              )}
+              {onReplay2 && (
+                <button
+                  onClick={onReplay2}
+                  style={{
+                    padding: '5px 14px',
+                    background: 'rgba(245, 158, 11, 0.08)',
+                    border: '1px solid rgba(245, 158, 11, 0.2)',
+                    borderRadius: 10,
+                    color: '#fbbf24',
+                    fontSize: 'clamp(10px, 2.5vw, 12px)',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                  }}
+                >
+                  {replayLabel2 || '🎮 Nochmal spielen'}
                 </button>
               )}
             </>

@@ -45,7 +45,7 @@ const PLAYER_PUZZLES = {
   ],
   andrea: [
     { id: 'andrea-1', label: 'Rätseltruhe 1', solvedLabel: 'Memory-Spiel', chained: true, password: 'memory', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'memory', matrixClue: 'D2: 7 - 8 - 1 - 2' },
-    { id: 'andrea-2', label: 'Rätseltruhe 2', solvedLabel: 'Obst-Rätsel', chained: true, password: 'markt', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'fruit-puzzle', replayLabel: '📋 Hinweis nochmal ansehen' },
+    { id: 'andrea-2', label: 'Rätseltruhe 2', solvedLabel: 'Obst-Rätsel', chained: true, password: 'markt', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'fruit-puzzle', replayLabel: '📋 Hinweis nochmal ansehen', replayLabel2: '🍎 Nochmal spielen' },
   ],
   rowena: [
     { id: 'rowena-1', label: 'Foto-Puzzle', game: 'puzzle', matrixClue: 'C11: 2 - 0 - 5 - 9 - 3' },
@@ -408,6 +408,8 @@ export default function Dashboard({ player, onLogout }) {
                       replayLabel={isSolved ? puzzle.replayLabel : undefined}
                       nearMiss={puzzle.nearMiss}
                       isEn={isEn}
+                      onReplay2={puzzle.replayLabel2 && isSolved ? () => setActiveGame({ game: puzzle.game, puzzleId: puzzle.id }) : null}
+                      replayLabel2={puzzle.replayLabel2}
                     />
                   );
                 })}

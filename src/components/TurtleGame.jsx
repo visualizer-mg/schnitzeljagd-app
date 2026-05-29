@@ -23,12 +23,12 @@ function shuffle(arr) {
   return a;
 }
 
-// Make sure at least one row is not in correct order
+// Make sure NO element is in its correct position (derangement)
 function shuffleRow() {
   let arr;
   do {
     arr = shuffle([0, 1, 2, 3]);
-  } while (arr.every((v, i) => v === i));
+  } while (arr.some((v, i) => v === i));
   return arr;
 }
 

@@ -43,7 +43,7 @@ const PLAYER_PUZZLES = {
     { id: 'beate-2', label: 'Rätseltruhe 2', solvedLabel: 'Gelöst!', game: 'magic-eye', matrixClue: 'C13: 6 - 3 - 9 - 2 - 4' },
   ],
   andrea: [
-    { id: 'andrea-1', label: 'Memory-Spiel', game: 'memory', matrixClue: 'D2: 7 - 8 - 1 - 2' },
+    { id: 'andrea-1', label: 'Memory-Spiel', chained: true, password: 'memory', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'memory', matrixClue: 'D2: 7 - 8 - 1 - 2' },
   ],
   rowena: [
     { id: 'rowena-1', label: 'Foto-Puzzle', game: 'puzzle', matrixClue: 'C11: 2 - 0 - 5 - 9 - 3' },

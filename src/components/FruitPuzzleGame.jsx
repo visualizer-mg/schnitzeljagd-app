@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
 // ═══════════════════════════════════════════════════════
 
 export default function FruitPuzzleGame({ onWin, onBack }) {
-  const [level, setLevel] = useState(1);
+  const [level, setLevel] = useState(0); // 0 = start screen
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [showTransition, setShowTransition] = useState(false);
@@ -63,6 +63,57 @@ export default function FruitPuzzleGame({ onWin, onBack }) {
       {text}
     </div>
   );
+
+  // ═══ START SCREEN ═══
+  if (level === 0) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: '80vh', padding: 24, textAlign: 'center',
+      }}>
+        <div style={{ fontSize: 56, marginBottom: 20 }}>🍎🍌🍊</div>
+        <div style={{
+          fontSize: 22, fontWeight: 800, color: '#ffa657',
+          letterSpacing: 1, marginBottom: 16, fontFamily: 'monospace',
+        }}>
+          Das Markträtsel
+        </div>
+        <div style={{
+          fontSize: 15, color: '#e6edf3', lineHeight: 1.8, maxWidth: 320, marginBottom: 24,
+        }}>
+          Herzlich willkommen auf dem Wochenmarkt!
+        </div>
+        <div style={{
+          fontSize: 13, color: '#8b949e', lineHeight: 1.7, maxWidth: 320, marginBottom: 32,
+          padding: '12px 16px', background: 'rgba(255, 166, 87, 0.08)',
+          border: '1px solid rgba(255, 166, 87, 0.2)', borderRadius: 10,
+        }}>
+          Um das Rätsel dieser Truhe zu lösen, musst du ein paar kleine Aufgaben bewältigen...
+        </div>
+        <button
+          onClick={() => { setLevel(1); setInput(''); }}
+          onTouchEnd={(e) => { e.stopPropagation(); setLevel(1); setInput(''); }}
+          style={{
+            padding: '16px 40px',
+            background: 'linear-gradient(135deg, #ffa657, #f78166)',
+            color: '#fff', border: 'none', borderRadius: 12, fontSize: 18,
+            fontWeight: 700, cursor: 'pointer', letterSpacing: 1,
+          }}
+        >
+          🍎 Los geht's!
+        </button>
+        {onBack && (
+          <button onClick={onBack}
+            onTouchEnd={(e) => { e.stopPropagation(); if (onBack) onBack(); }}
+            style={{
+              marginTop: 16, padding: '8px 20px', background: 'transparent',
+              color: '#8b949e', border: '1px solid #30363d', borderRadius: 8,
+              fontSize: 13, cursor: 'pointer',
+            }}>← Zurück</button>
+        )}
+      </div>
+    );
+  }
 
   // ═══ TRANSITION ═══
   if (showTransition) {

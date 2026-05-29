@@ -1094,6 +1094,15 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); startGame(); }}>
         <div style={{ textAlign: 'center', padding: 30 }}>
           <div style={{ fontSize: 60, marginBottom: 20 }}>🍲</div>
+          <h1 style={{
+            fontSize: 'clamp(24px, 6vw, 36px)',
+            fontWeight: 800,
+            color: '#fbbf24',
+            margin: '0 0 10px',
+            textShadow: '2px 2px 8px rgba(0,0,0,0.8)',
+          }}>
+            Schnippel-Ninja
+          </h1>
           <p style={{
             fontSize: 'clamp(14px, 3.5vw, 18px)',
             color: 'rgba(255,255,255,0.7)',

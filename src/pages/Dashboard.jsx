@@ -52,6 +52,7 @@ const PLAYER_PUZZLES = {
 };
 
 export default function Dashboard({ player, onLogout }) {
+  const isEn = player?.name?.toLowerCase() === 'rowena';
   const [progress, setProgress] = useState([]);
   const [clues, setClues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -309,7 +310,7 @@ export default function Dashboard({ player, onLogout }) {
             minHeight: 40,
           }}
         >
-          Abmelden
+          {isEn ? 'Logout' : 'Abmelden'}
         </button>
       </header>
 
@@ -340,7 +341,7 @@ export default function Dashboard({ player, onLogout }) {
               color: '#4ade80',
               lineHeight: 1.3,
             }}>
-              Willkommen zur Schnitzeljagd!
+              {isEn ? 'Welcome to the Schnitzeljagd!' : 'Willkommen zur Schnitzeljagd!'}
             </h2>
             <p style={{
               margin: 0,
@@ -348,8 +349,10 @@ export default function Dashboard({ player, onLogout }) {
               color: 'rgba(255,255,255,0.6)',
               lineHeight: 1.6,
             }}>
-              Ellens Geburtstags-Abenteuer wartet auf dich.
-              Löse Rätsel, sammle Hinweise und hilf mit, das große Geheimnis zu lüften!
+              {isEn
+                ? "Ellen's birthday adventure awaits you. Solve puzzles, collect clues and help unlock the big secret!"
+                : "Ellens Geburtstags-Abenteuer wartet auf dich. Löse Rätsel, sammle Hinweise und hilf mit, das große Geheimnis zu lüften!"
+              }
             </p>
           </div>
 
@@ -364,7 +367,7 @@ export default function Dashboard({ player, onLogout }) {
                 marginBottom: 'clamp(16px, 4vw, 24px)',
                 textAlign: 'center',
               }}>
-                Deine Rätseltruhen
+                {isEn ? 'Your Treasure Chests' : 'Deine Rätseltruhen'}
               </h3>
 
               <div style={{
@@ -399,6 +402,7 @@ export default function Dashboard({ player, onLogout }) {
                       onReplay={puzzle.game ? () => setActiveGame({ game: puzzle.game, puzzleId: puzzle.id, showResult: isSolved && puzzle.replayLabel }) : null}
                       replayLabel={isSolved ? puzzle.replayLabel : undefined}
                       nearMiss={puzzle.nearMiss}
+                      isEn={isEn}
                     />
                   );
                 })}

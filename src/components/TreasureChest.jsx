@@ -177,7 +177,7 @@ function ChainBreakExplosion({ active }) {
 //   4. Correct password → chain explodes → chest unlockable
 //   5. Click chest → shake → open with dual sparkles
 //
-export default function TreasureChest({ label, locked, chained, password, taunt, wrongMsg, onOpen, onUnchain, alreadyOpened, solved, game, onReplay, replayLabel, matrixClue, caseSensitive, nearMiss }) {
+export default function TreasureChest({ label, locked, chained, password, taunt, wrongMsg, onOpen, onUnchain, alreadyOpened, solved, game, onReplay, replayLabel, matrixClue, caseSensitive, nearMiss, isEn }) {
   const [opened, setOpened] = useState(alreadyOpened || solved || false);
   const [animating, setAnimating] = useState(false);
   const [showSparkles, setShowSparkles] = useState(false);
@@ -560,7 +560,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
                   fontWeight: 600,
                   letterSpacing: 1,
                 }}>
-                  🔑 Matrix-Code: {matrixClue}
+                  🔑 {isEn ? 'Matrix Code' : 'Matrix-Code'}: {matrixClue}
                 </div>
               )}
               {onReplay && (
@@ -577,7 +577,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
                     fontWeight: 500,
                   }}
                 >
-                  {replayLabel || '🎮 Nochmal spielen'}
+                  {replayLabel || (isEn ? '🎮 Play again' : '🎮 Nochmal spielen')}
                 </button>
               )}
             </>
@@ -589,7 +589,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
                 color: 'rgba(245, 158, 11, 0.7)',
                 fontStyle: 'italic',
               }}>
-                ❌ Spiel noch nicht geschafft
+                {isEn ? '❌ Not completed yet' : '❌ Spiel noch nicht geschafft'}
               </div>
               {onReplay && (
                 <button
@@ -605,7 +605,7 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
                     fontWeight: 600,
                   }}
                 >
-                  🎮 Spiel starten
+                  {isEn ? '🎮 Start game' : '🎮 Spiel starten'}
                 </button>
               )}
             </>

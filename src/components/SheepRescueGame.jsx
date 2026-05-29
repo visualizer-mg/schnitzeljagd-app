@@ -324,6 +324,11 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
     );
   }
 
+  // Play sheep sound on win screen
+  useEffect(() => {
+    if (phase === 'won') playSound(SHEEP_SFX, 0.7);
+  }, [phase]);
+
   // ═══ WIN SCREEN ═══
   if (phase === 'won') {
     return (

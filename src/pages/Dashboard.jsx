@@ -41,7 +41,7 @@ const PLAYER_PUZZLES = {
   ],
   beate: [
     { id: 'beate-1', label: 'Braune Soße Memory', game: 'braune-sosse', matrixClue: 'C5: 2 - 6 - 5 - 4 - 1 - 3' },
-    { id: 'beate-2', label: 'Rätseltruhe 2', solvedLabel: 'Gelöst!', game: 'magic-eye', matrixClue: 'C13: 6 - 3 - 9 - 2 - 4' },
+    { id: 'beate-2', label: 'Rätseltruhe 2', solvedLabel: 'Gelöst!', chained: true, password: ['auge', 'augen'], taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'magic-eye', matrixClue: 'C13: 6 - 3 - 9 - 2 - 4' },
   ],
   andrea: [
     { id: 'andrea-1', label: 'Rätseltruhe 1', solvedLabel: 'Memory-Spiel', chained: true, password: 'memory', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'memory', matrixClue: 'D2: 7 - 8 - 1 - 2' },

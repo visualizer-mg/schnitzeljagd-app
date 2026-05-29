@@ -239,9 +239,12 @@ export default function TreasureChest({ label, locked, chained, password, taunt,
     e.preventDefault();
     if (!password) return;
 
-    const match = caseSensitive
-      ? pwInput.trim() === password.trim()
-      : pwInput.trim().toLowerCase() === password.trim().toLowerCase();
+    const input = pwInput.trim();
+    const passwords = Array.isArray(password) ? password : [password];
+    const match = passwords.some(pw => caseSensitive
+      ? input === pw.trim()
+      : input.toLowerCase() === pw.trim().toLowerCase()
+    );
     if (match) {
       // Correct! Close popup first, wait 1s, then break chain with sound
       setPwError(false);

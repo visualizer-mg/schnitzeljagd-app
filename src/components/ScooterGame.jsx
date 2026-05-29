@@ -518,7 +518,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
 
         // Elephant flies upward off screen during rocket
         if (!s.rocketFlyY) s.rocketFlyY = 0;
-        s.rocketFlyY = Math.min(s.rocketFlyY + 8 * dt, 500); // fly up fast
+        s.rocketFlyY = Math.min(s.rocketFlyY + 12 * dt, 900); // fly WAY up, off screen
 
         // Speed up background scroll dramatically
         s.bgScroll += 15 * dt;
@@ -632,15 +632,16 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
             if (o.isKopf && !o._collected) {
               o._collected = true;
               o.x = -999; // remove from view
-              s.rocketJump += 3000; // +3km rocket boost!
+              s.rocketJump += 5000; // +5km mega rocket boost!
               s.rocketFlyY = 0;
               s.jumping = true;
-              s.jumpVel = JUMP_FORCE * 3; // launch hard
-              s.invincible = 180; // invincible during entire rocket
-              // Play alarm sound
+              s.jumpVel = JUMP_FORCE * 5; // launch HARD
+              s.invincible = 300; // invincible during entire rocket
+              // Play jump sound instead of alarm
               try {
-                const sfx = new Audio('/assets/alarm-call.mp3');
+                const sfx = new Audio('/assets/scooter-jump.wav');
                 sfx.volume = 0.8;
+                sfx.playbackRate = 0.5;
                 sfx.play().catch(() => {});
               } catch(e) {}
               continue;

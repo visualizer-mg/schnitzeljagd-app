@@ -599,7 +599,35 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       });
       s.obstacles = s.obstacles.filter(o => o.x + o.w > -20);
 
-      // ── Collision detection ──
+      // ── Kopf collision (always check, even when invincible) ──
+      {
+        const elephY = s.laneY + s.jumpOffsetY;
+        for (const o of s.obstacles) {
+          if (!o.isKopf || o._collected) continue;
+          if (Math.abs(LANE_Y[o.lane] - s.laneY) > LANE_H * 0.6) continue;
+          const oRect = { x: o.x, y: o.y, w: o.w, h: o.h };
+          const eRect = { x: ELEPH_X + 10, y: elephY - ELEPH_H + 5, w: ELEPH_W - 20, h: ELEPH_H - 8 };
+          if (eRect.x < oRect.x + oRect.w && eRect.x + eRect.w > oRect.x &&
+              eRect.y < oRect.y + oRect.h && eRect.y + eRect.h > oRect.y) {
+            o._collected = true;
+            o.x = -999;
+            s.rocketJump = 5000;
+            s.rocketFlyY = 0;
+            s.invincible = 300;
+            s.jumping = false; // let rocket system handle flight
+            s.jumpOffsetY = 0;
+            s.jumpVel = 0;
+            try {
+              const sfx = new Audio('/assets/scooter-jump.wav');
+              sfx.volume = 0.8;
+              sfx.playbackRate = 0.5;
+              sfx.play().catch(() => {});
+            } catch(e) {}
+          }
+        }
+      }
+
+      // ── Collision detection (normal obstacles) ──
       if (s.invincible > 0) {
         s.invincible -= dt;
       } else {
@@ -612,6 +640,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         };
 
         for (const o of s.obstacles) {
+          if (o.isKopf) continue; // handled above
           // Only collide if in same lane area
           if (Math.abs(LANE_Y[o.lane] - s.laneY) > LANE_H * 0.6) continue;
 
@@ -628,24 +657,6 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
             elephRect.y < oRect.y + oRect.h &&
             elephRect.y + elephRect.h > oRect.y
           ) {
-            // Kopf: rocket jump! +2km, no damage
-            if (o.isKopf && !o._collected) {
-              o._collected = true;
-              o.x = -999; // remove from view
-              s.rocketJump += 5000; // +5km mega rocket boost!
-              s.rocketFlyY = 0;
-              s.jumping = true;
-              s.jumpVel = JUMP_FORCE * 5; // launch HARD
-              s.invincible = 300; // invincible during entire rocket
-              // Play jump sound instead of alarm
-              try {
-                const sfx = new Audio('/assets/scooter-jump.wav');
-                sfx.volume = 0.8;
-                sfx.playbackRate = 0.5;
-                sfx.play().catch(() => {});
-              } catch(e) {}
-              continue;
-            }
 
             // Wohnwagen: if jumping and landing on it → bounce off (double-jump)
             if (o.type === 'auto5' && s.jumping && s.jumpVel > 0 && !o._bounced) {

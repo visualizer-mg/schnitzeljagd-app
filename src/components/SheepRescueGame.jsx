@@ -247,10 +247,17 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
         }}>
           🐑 FIND THE EXIT!
         </div>
-        <div style={{
-          fontSize: 10, color: '#8b949e', marginBottom: 6, fontFamily: 'monospace',
-        }}>
-          Moves: {moveCount}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+          <span style={{ fontSize: 10, color: '#8b949e', fontFamily: 'monospace' }}>
+            Moves: {moveCount}
+          </span>
+          <button onClick={restart}
+            onTouchEnd={(e) => { e.stopPropagation(); restart(); }}
+            style={{
+              padding: '4px 12px', background: 'rgba(245, 158, 11, 0.1)',
+              color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: 6, fontSize: 10, cursor: 'pointer', fontFamily: 'monospace',
+            }}>↻ RESET</button>
         </div>
 
         {/* Maze grid */}
@@ -313,25 +320,6 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
           <div>{dpadBtn('⬇️', 1, 0)}</div>
         </div>
 
-        {/* Buttons */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-          <button onClick={restart}
-            onTouchEnd={(e) => { e.stopPropagation(); restart(); }}
-            style={{
-              padding: '8px 20px', background: 'rgba(245, 158, 11, 0.1)',
-              color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)',
-              borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'monospace',
-            }}>↻ RESET</button>
-          {onBack && (
-            <button onClick={onBack}
-              onTouchEnd={(e) => { e.stopPropagation(); if (onBack) onBack(); }}
-              style={{
-                padding: '8px 20px', background: 'transparent',
-                color: '#8b949e', border: '1px solid #30363d', borderRadius: 8,
-                fontSize: 12, cursor: 'pointer',
-              }}>← Back</button>
-          )}
-        </div>
       </div>
     );
   }

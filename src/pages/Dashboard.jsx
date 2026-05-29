@@ -47,7 +47,7 @@ const PLAYER_PUZZLES = {
   ],
   rowena: [
     { id: 'rowena-1', label: 'Foto-Puzzle', game: 'puzzle', matrixClue: 'C11: 2 - 0 - 5 - 9 - 3' },
-    { id: 'rowena-2', label: 'Rätseltruhe 2', solvedLabel: 'The Lost Sheep', chained: true, password: 'sheep', taunt: 'Which white animals can you find everywhere in Scotland?', wrongMsg: 'Wrong answer! Try again...', game: 'sheep-rescue', matrixClue: 'C8: 8 - 9 - 5 - 3 - 6', replayLabel: '🐑 Play again' },
+    { id: 'rowena-2', label: 'Treasure Chest 2', solvedLabel: 'The Lost Sheep', chained: true, password: 'sheep', taunt: 'Which white animals can you find everywhere in Scotland?', wrongMsg: 'Wrong answer! Try again...', game: 'sheep-rescue', replayLabel: '🐑 Play again' },
   ],
 };
 

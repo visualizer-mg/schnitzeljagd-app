@@ -990,11 +990,12 @@ export default function XWingGame({ onWin, matrixClue }) {
               {onWin && (
                 <button
                   onClick={() => onWin(matrixClue)}
+                  onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onWin(matrixClue); }}
                   style={{
                     fontFamily: fonts.mono, fontSize: 13, fontWeight: 'bold',
                     color: '#fff', background: colors.greenDark,
                     border: `1px solid ${colors.green}`, borderRadius: 6,
-                    padding: '8px 20px', cursor: 'pointer',
+                    padding: '12px 28px', cursor: 'pointer', minHeight: 44,
                   }}
                 >
                   ✓ WEITER

@@ -1159,13 +1159,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             touchAction: 'none',
           }}
         />
-        {/* DEBUG: skip to pot */}
-        <button
-          onClick={() => { const s = stateRef.current; if (s) goToPot(s.totalCollected); }}
-          style={{ position: 'fixed', bottom: 10, right: 10, zIndex: 9999, opacity: 0.3, fontSize: 10, padding: '4px 8px' }}
-        >
-          🍲 SKIP
-        </button>
         {showLevelComplete && (
           <div style={{
             position: 'absolute',

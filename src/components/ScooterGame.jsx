@@ -880,6 +880,12 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         >
           ▶ LOS GEHT'S
         </button>
+        <button
+          onClick={() => { if (onWin) onWin(matrixClue); setPhase('win'); }}
+          style={{ fontFamily: fonts.mono, fontSize: 10, color: '#999', background: 'transparent', border: '1px solid #333', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', marginBottom: 12 }}
+        >
+          🏁 SKIP TO WIN (debug)
+        </button>
         {/* Animated Wohnwagen driving across */}
         <div style={{
           width: '100%', height: 160, position: 'relative',
@@ -1050,13 +1056,6 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         <span>↕ Wischen = Spur wechseln</span>
         <span>Tippen = Springen</span>
       </div>
-      {/* DEBUG: instant win */}
-      <button
-        onClick={() => { stateRef.current.distance = TARGET_KM * 1000; }}
-        style={{ position: 'fixed', bottom: 80, right: 10, zIndex: 99999, opacity: 0.5, fontSize: 14, padding: '10px 16px', background: '#333', color: '#fff', border: '2px solid #666', borderRadius: 8 }}
-      >
-        🏁 WIN
-      </button>
     </div>
   );
 }

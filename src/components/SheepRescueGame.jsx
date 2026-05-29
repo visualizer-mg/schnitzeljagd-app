@@ -1,222 +1,176 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // ═══════════════════════════════════════════════════════
 // SHEEP RESCUE — Rowena
-// Draw-on-maze: sheep.jpg as background, finger-trace path
-// Must pass through 7 checkpoints in order to win
+// D-Pad controlled maze: sheep slides to next junction
 // Matrix-Clue C8: 8, 9, 5, 3, 6
 // ═══════════════════════════════════════════════════════
 
 const MAZE_IMG = './assets/sheep/sheep.jpg';
 const SHEEP_SFX = './assets/sheep/sheep.mp3';
 
-// Checkpoints as % of maze image dimensions (from Lösung2.jpg)
-// Must be hit in order: 1→2→3→4→5→6→7
-const CHECKPOINTS = [
-  { id: 1, x: 52, y: 11, label: '1' },
-  { id: 2, x: 22, y: 11, label: '2' },
-  { id: 3, x: 12, y: 17, label: '3' },
-  { id: 4, x: 8,  y: 34, label: '4' },
-  { id: 5, x: 8,  y: 67, label: '5' },
-  { id: 6, x: 12, y: 90, label: '6' },
-  { id: 7, x: 58, y: 92, label: '7' },
-];
-
-const HIT_RADIUS = 8; // % of image width — how close you need to get
-
-function playSound(src, volume = 0.6) {
-  try {
-    const a = new Audio(src);
-    a.volume = volume;
-    a.play().catch(() => {});
-  } catch {}
+function playSound(src, vol = 0.6) {
+  try { const a = new Audio(src); a.volume = vol; a.play().catch(() => {}); } catch {}
 }
 
+// ── Maze grid: 0=path, 1=wall ──
+// 21 wide x 21 tall — entrance top, exit bottom
+const MAZE = [
+  [1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+  [1,0,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1,1,1,0,1],
+  [1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
+  [1,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,0,1,1,1],
+  [1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,0,1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
+  [1,0,0,0,1,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1],
+  [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1],
+  [1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1],
+  [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+  [1,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,0,1,0,1],
+  [1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1],
+  [1,1,1,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,0,1],
+  [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1],
+  [1,0,1,1,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1,0,1],
+  [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,1],
+  [1,1,1,1,1,0,1,1,1,0,1,0,1,0,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+];
+
+const ROWS = MAZE.length;
+const COLS = MAZE[0].length;
+const START = { r: 0, c: 10 };  // entrance top center
+const EXIT = { r: 20, c: 20 };  // exit bottom right
+
 export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
-  const [phase, setPhase] = useState('start'); // 'start' | 'maze' | 'won'
-  const canvasRef = useRef(null);
-  const imgRef = useRef(null);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [canvasW, setCanvasW] = useState(350);
-  const [canvasH, setCanvasH] = useState(420);
-  const [strokes, setStrokes] = useState([]);
-  const [currentStroke, setCurrentStroke] = useState(null);
-  const [hitCheckpoints, setHitCheckpoints] = useState([]);
-  const [lastHitFlash, setLastHitFlash] = useState(null);
-  const [solved, setSolved] = useState(false);
+  const [phase, setPhase] = useState('start');
+  const [sheep, setSheep] = useState({ r: START.r, c: START.c });
+  const [moving, setMoving] = useState(false);
+  const [moveCount, setMoveCount] = useState(0);
+  const [trail, setTrail] = useState([{ r: START.r, c: START.c }]);
+  const animRef = useRef(null);
 
-  // Load image and set canvas size
-  useEffect(() => {
-    if (phase !== 'maze') return;
-    const img = new Image();
-    img.onload = () => {
-      imgRef.current = img;
-      // Fit to screen width
-      const maxW = Math.min(window.innerWidth - 24, 420);
-      const ratio = img.height / img.width;
-      const w = maxW;
-      const h = Math.round(w * ratio);
-      setCanvasW(w);
-      setCanvasH(h);
-      setImgLoaded(true);
+  // Calculate cell size
+  const maxW = typeof window !== 'undefined' ? Math.min(window.innerWidth - 32, 400) : 350;
+  const cellSize = Math.floor(maxW / COLS);
+  const mazeW = cellSize * COLS;
+  const mazeH = cellSize * ROWS;
+
+  // Check if cell is a junction (3+ open neighbors) or dead end (1 open neighbor)
+  const isJunction = useCallback((r, c) => {
+    let openDirs = 0;
+    if (r > 0 && MAZE[r-1][c] === 0) openDirs++;
+    if (r < ROWS-1 && MAZE[r+1][c] === 0) openDirs++;
+    if (c > 0 && MAZE[r][c-1] === 0) openDirs++;
+    if (c < COLS-1 && MAZE[r][c+1] === 0) openDirs++;
+    return openDirs >= 3 || openDirs === 1; // junction or dead end
+  }, []);
+
+  // Move sheep in a direction until junction/wall
+  const moveSheep = useCallback((dr, dc) => {
+    if (moving) return;
+
+    let r = sheep.r;
+    let c = sheep.c;
+    let nr = r + dr;
+    let nc = c + dc;
+
+    // Can't move into wall
+    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || MAZE[nr][nc] === 1) return;
+
+    setMoving(true);
+    setMoveCount(prev => prev + 1);
+
+    const newTrail = [...trail];
+    const steps = [];
+
+    // Slide until junction, dead end, or wall
+    while (
+      nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS &&
+      MAZE[nr][nc] === 0
+    ) {
+      steps.push({ r: nr, c: nc });
+      // Stop at junction or dead end
+      if (isJunction(nr, nc)) break;
+      // Check if we can continue in same direction
+      const nnr = nr + dr;
+      const nnc = nc + dc;
+      if (nnr < 0 || nnr >= ROWS || nnc < 0 || nnc >= COLS || MAZE[nnr][nnc] === 1) break;
+      nr = nnr;
+      nc = nnc;
+    }
+
+    if (steps.length === 0) {
+      setMoving(false);
+      return;
+    }
+
+    // Animate step by step
+    let i = 0;
+    const animate = () => {
+      if (i < steps.length) {
+        const s = steps[i];
+        setSheep(s);
+        newTrail.push(s);
+        i++;
+        animRef.current = setTimeout(animate, 50);
+      } else {
+        setTrail(newTrail);
+        setMoving(false);
+
+        // Check win
+        const final = steps[steps.length - 1];
+        if (final.r === EXIT.r && final.c === EXIT.c) {
+          setTimeout(() => {
+            setPhase('won');
+            if (onWin) onWin();
+          }, 500);
+        }
+      }
     };
-    img.src = MAZE_IMG;
-  }, [phase]);
+    animate();
+  }, [sheep, moving, trail, isJunction, onWin]);
 
-  // Draw
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    const img = imgRef.current;
-    if (!canvas || !img) return;
-    const ctx = canvas.getContext('2d');
-
-    // HiDPI
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = canvasW * dpr;
-    canvas.height = canvasH * dpr;
-    canvas.style.width = canvasW + 'px';
-    canvas.style.height = canvasH + 'px';
-    ctx.scale(dpr, dpr);
-
-    // Draw maze image
-    ctx.drawImage(img, 0, 0, canvasW, canvasH);
-
-    // Draw checkpoint zones (subtle)
-    CHECKPOINTS.forEach((cp, i) => {
-      const cx = (cp.x / 100) * canvasW;
-      const cy = (cp.y / 100) * canvasH;
-      const r = (HIT_RADIUS / 100) * canvasW;
-      const isHit = hitCheckpoints.includes(cp.id);
-      const isNext = !isHit && hitCheckpoints.length === i;
-
-      if (isHit) {
-        ctx.fillStyle = 'rgba(63, 185, 80, 0.25)';
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#3fb950';
-        ctx.font = `bold ${Math.round(canvasW * 0.035)}px monospace`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('✓', cx, cy);
-      } else if (isNext) {
-        // Pulsing next checkpoint
-        ctx.strokeStyle = 'rgba(255, 166, 87, 0.6)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(255, 166, 87, 0.8)';
-        ctx.font = `bold ${Math.round(canvasW * 0.03)}px monospace`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(cp.label, cx, cy);
-      }
-    });
-
-    // Draw all strokes
-    const allStrokes = currentStroke ? [...strokes, currentStroke] : strokes;
-    allStrokes.forEach(stroke => {
-      if (stroke.length < 2) return;
-      ctx.strokeStyle = 'rgba(255, 80, 80, 0.7)';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(stroke[0].x, stroke[0].y);
-      for (let i = 1; i < stroke.length; i++) {
-        ctx.lineTo(stroke[i].x, stroke[i].y);
-      }
-      ctx.stroke();
-    });
-  }, [canvasW, canvasH, strokes, currentStroke, hitCheckpoints, imgLoaded]);
-
+  // Cleanup animation on unmount
   useEffect(() => {
-    if (phase === 'maze' && imgLoaded) draw();
-  }, [phase, imgLoaded, draw]);
+    return () => { if (animRef.current) clearTimeout(animRef.current); };
+  }, []);
 
-  // Get position from touch/mouse event
-  const getPos = (e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-    const rect = canvas.getBoundingClientRect();
-    const touch = e.touches ? e.touches[0] : e;
-    return {
-      x: ((touch.clientX - rect.left) / rect.width) * canvasW,
-      y: ((touch.clientY - rect.top) / rect.height) * canvasH,
-    };
-  };
-
-  // Check if point hits a checkpoint
-  const checkCheckpointHit = useCallback((pos) => {
-    if (solved) return;
-    const nextIdx = hitCheckpoints.length;
-    if (nextIdx >= CHECKPOINTS.length) return;
-
-    const cp = CHECKPOINTS[nextIdx];
-    const cx = (cp.x / 100) * canvasW;
-    const cy = (cp.y / 100) * canvasH;
-    const r = (HIT_RADIUS / 100) * canvasW;
-
-    const dist = Math.sqrt((pos.x - cx) ** 2 + (pos.y - cy) ** 2);
-    if (dist <= r) {
-      const newHits = [...hitCheckpoints, cp.id];
-      setHitCheckpoints(newHits);
-      setLastHitFlash(cp.id);
-      setTimeout(() => setLastHitFlash(null), 500);
-
-      // All checkpoints hit?
-      if (newHits.length === CHECKPOINTS.length) {
-        setSolved(true);
-        setTimeout(() => {
-          setPhase('won');
-          if (onWin) onWin();
-        }, 1000);
-      }
-    }
-  }, [hitCheckpoints, canvasW, canvasH, solved, onWin]);
-
-  const handleStart = (e) => {
-    if (solved) return;
-    e.preventDefault();
-    const pos = getPos(e);
-    if (pos) setCurrentStroke([pos]);
-  };
-
-  const handleMove = (e) => {
-    if (!currentStroke || solved) return;
-    e.preventDefault();
-    const pos = getPos(e);
-    if (pos) {
-      setCurrentStroke(prev => [...prev, pos]);
-      checkCheckpointHit(pos);
-    }
-  };
-
-  const handleEnd = (e) => {
-    if (!currentStroke) return;
-    e?.preventDefault();
-    if (currentStroke.length >= 2) {
-      setStrokes(prev => [...prev, currentStroke]);
-    }
-    setCurrentStroke(null);
-  };
-
-  const restart = () => {
-    setStrokes([]);
-    setCurrentStroke(null);
-    setHitCheckpoints([]);
-    setSolved(false);
-  };
-
-  // Play sheep sound on start screen after 2 seconds
+  // Play sheep sound on start
   useEffect(() => {
     if (phase !== 'start') return;
-    const timer = setTimeout(() => playSound(SHEEP_SFX, 0.7), 2000);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => playSound(SHEEP_SFX, 0.7), 2000);
+    return () => clearTimeout(t);
   }, [phase]);
+
+  const restart = () => {
+    setSheep({ r: START.r, c: START.c });
+    setTrail([{ r: START.r, c: START.c }]);
+    setMoveCount(0);
+    setMoving(false);
+    if (animRef.current) clearTimeout(animRef.current);
+  };
+
+  // D-Pad button style
+  const dpadBtn = (emoji, dr, dc) => (
+    <button
+      onTouchStart={(e) => { e.preventDefault(); moveSheep(dr, dc); }}
+      onClick={() => moveSheep(dr, dc)}
+      style={{
+        width: 56, height: 56, fontSize: 22,
+        background: 'rgba(255, 166, 87, 0.15)',
+        border: '2px solid rgba(255, 166, 87, 0.4)',
+        borderRadius: 12, color: '#ffa657',
+        cursor: 'pointer', display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        userSelect: 'none', WebkitUserSelect: 'none',
+      }}
+    >
+      {emoji}
+    </button>
+  );
 
   // ═══ START SCREEN ═══
   if (phase === 'start') {
@@ -227,26 +181,24 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
       }}>
         <div style={{ fontSize: 64, marginBottom: 24 }}>🐑🚨</div>
         <div style={{
-          fontSize: 24, fontWeight: 800, color: '#ffa657',
+          fontSize: 22, fontWeight: 800, color: '#ffa657',
           letterSpacing: 2, marginBottom: 16, fontFamily: 'monospace',
         }}>
           OPERATION SHEEP RESCUE
         </div>
         <div style={{
-          fontSize: 16, color: '#e6edf3', lineHeight: 1.8, maxWidth: 320, marginBottom: 8,
+          fontSize: 15, color: '#e6edf3', lineHeight: 1.8, maxWidth: 320, marginBottom: 8,
         }}>
-          A sheep has gone missing!<br/>
-          We need to rescue it!
+          A sheep has gone missing!<br/>We need to rescue it!
         </div>
         <div style={{
           fontSize: 13, color: '#8b949e', lineHeight: 1.7, maxWidth: 320, marginBottom: 32,
           padding: '12px 16px', background: 'rgba(255, 166, 87, 0.08)',
           border: '1px solid rgba(255, 166, 87, 0.2)', borderRadius: 10,
         }}>
-          Navigate through the maze by drawing a path with your finger.
-          Pass through all checkpoints to rescue the sheep!
+          Guide the sheep through the maze using the arrow buttons.
+          The sheep will slide until it reaches the next crossroad!
         </div>
-        {/* TODO: Video placeholder */}
         <button
           onClick={() => setPhase('maze')}
           onTouchEnd={(e) => { e.stopPropagation(); setPhase('maze'); }}
@@ -260,17 +212,13 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
           🐑 LET'S GO!
         </button>
         {onBack && (
-          <button
-            onClick={onBack}
+          <button onClick={onBack}
             onTouchEnd={(e) => { e.stopPropagation(); if (onBack) onBack(); }}
             style={{
               marginTop: 16, padding: '8px 20px', background: 'transparent',
               color: '#8b949e', border: '1px solid #30363d', borderRadius: 8,
               fontSize: 13, cursor: 'pointer',
-            }}
-          >
-            ← Back
-          </button>
+            }}>← Back</button>
         )}
       </div>
     );
@@ -284,91 +232,88 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
         padding: '8px 8px', minHeight: '100%',
       }}>
         <div style={{
-          fontSize: 14, fontWeight: 700, color: '#ffa657',
-          marginBottom: 2, fontFamily: 'monospace', letterSpacing: 1,
+          fontSize: 13, fontWeight: 700, color: '#ffa657',
+          marginBottom: 2, fontFamily: 'monospace',
         }}>
-          🐑 RESCUE THE SHEEP!
+          🐑 FIND THE EXIT!
         </div>
         <div style={{
-          fontSize: 10, color: '#8b949e', marginBottom: 6,
-          fontFamily: 'monospace',
+          fontSize: 10, color: '#8b949e', marginBottom: 6, fontFamily: 'monospace',
         }}>
-          Draw through all {CHECKPOINTS.length} checkpoints
-        </div>
-
-        {/* Checkpoint progress */}
-        <div style={{
-          display: 'flex', gap: 4, marginBottom: 8,
-        }}>
-          {CHECKPOINTS.map((cp, i) => (
-            <div key={cp.id} style={{
-              width: 24, height: 24, borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, fontFamily: 'monospace',
-              background: hitCheckpoints.includes(cp.id) ? '#3fb950' :
-                          hitCheckpoints.length === i ? '#ffa657' : '#30363d',
-              color: hitCheckpoints.includes(cp.id) || hitCheckpoints.length === i ? '#fff' : '#8b949e',
-              transition: 'all 0.3s',
-              transform: lastHitFlash === cp.id ? 'scale(1.3)' : 'scale(1)',
-            }}>
-              {hitCheckpoints.includes(cp.id) ? '✓' : cp.label}
-            </div>
-          ))}
+          Moves: {moveCount}
         </div>
 
-        {/* Canvas */}
+        {/* Maze grid */}
         <div style={{
-          border: `2px solid ${solved ? '#3fb950' : '#30363d'}`,
-          borderRadius: 6, overflow: 'hidden',
-          transition: 'border-color 0.3s',
+          width: mazeW, height: mazeH,
+          position: 'relative',
+          border: '2px solid #30363d',
+          borderRadius: 4,
+          overflow: 'hidden',
+          background: '#0d1117',
         }}>
-          {imgLoaded ? (
-            <canvas
-              ref={canvasRef}
-              onTouchStart={handleStart}
-              onTouchMove={handleMove}
-              onTouchEnd={handleEnd}
-              onMouseDown={handleStart}
-              onMouseMove={(e) => { if (currentStroke) handleMove(e); }}
-              onMouseUp={handleEnd}
-              style={{ display: 'block', touchAction: 'none' }}
-            />
-          ) : (
-            <div style={{
-              width: canvasW, height: canvasH,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#8b949e', fontSize: 13,
-            }}>
-              Loading maze...
-            </div>
-          )}
+          {/* Render cells */}
+          {MAZE.map((row, r) => row.map((cell, c) => {
+            const isPath = cell === 0;
+            const isExit = r === EXIT.r && c === EXIT.c;
+            const isSheep = r === sheep.r && c === sheep.c;
+            const isTrail = trail.some(t => t.r === r && t.c === c);
+
+            return (
+              <div key={`${r}-${c}`} style={{
+                position: 'absolute',
+                left: c * cellSize,
+                top: r * cellSize,
+                width: cellSize,
+                height: cellSize,
+                background: isPath
+                  ? (isTrail ? 'rgba(63, 185, 80, 0.12)' : 'rgba(255, 255, 255, 0.95)')
+                  : '#1a1a2e',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: cellSize * 0.7,
+                boxSizing: 'border-box',
+                border: isPath ? '0.5px solid rgba(0,0,0,0.05)' : 'none',
+                transition: isSheep ? 'none' : undefined,
+              }}>
+                {isSheep && '🐑'}
+                {isExit && !isSheep && (
+                  <span style={{ fontSize: cellSize * 0.5, opacity: 0.6 }}>🏁</span>
+                )}
+              </div>
+            );
+          }))}
+        </div>
+
+        {/* D-Pad */}
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <div>{dpadBtn('⬆️', -1, 0)}</div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {dpadBtn('⬅️', 0, -1)}
+            <div style={{ width: 56, height: 56 }} />
+            {dpadBtn('➡️', 0, 1)}
+          </div>
+          <div>{dpadBtn('⬇️', 1, 0)}</div>
         </div>
 
         {/* Buttons */}
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-          <button
-            onClick={restart}
+          <button onClick={restart}
             onTouchEnd={(e) => { e.stopPropagation(); restart(); }}
             style={{
               padding: '8px 20px', background: 'rgba(245, 158, 11, 0.1)',
               color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)',
               borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'monospace',
-            }}
-          >
-            ↻ RESET
-          </button>
+            }}>↻ RESET</button>
           {onBack && (
-            <button
-              onClick={onBack}
+            <button onClick={onBack}
               onTouchEnd={(e) => { e.stopPropagation(); if (onBack) onBack(); }}
               style={{
                 padding: '8px 20px', background: 'transparent',
                 color: '#8b949e', border: '1px solid #30363d', borderRadius: 8,
                 fontSize: 12, cursor: 'pointer',
-              }}
-            >
-              ← Back
-            </button>
+              }}>← Back</button>
           )}
         </div>
       </div>
@@ -386,9 +331,8 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
         <div style={{ fontSize: 22, fontWeight: 700, color: '#7ee787', marginBottom: 12 }}>
           SHEEP RESCUED!
         </div>
-        <div style={{ fontSize: 15, color: '#e6edf3', lineHeight: 1.8, marginBottom: 24 }}>
-          You found the lost sheep!<br/>
-          Well done, Rowena!
+        <div style={{ fontSize: 15, color: '#e6edf3', lineHeight: 1.8, marginBottom: 8 }}>
+          You found the exit in {moveCount} moves!<br/>Well done, Rowena!
         </div>
         <div style={{ fontSize: 13, color: '#8b949e', marginBottom: 8 }}>
           You unlocked a Matrix Clue:
@@ -402,17 +346,13 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
             {matrixClue || 'C8: 8 - 9 - 5 - 3 - 6'}
           </div>
         </div>
-        <button
-          onClick={onBack}
+        <button onClick={onBack}
           onTouchEnd={(e) => { e.stopPropagation(); if (onBack) onBack(); }}
           style={{
             padding: '14px 32px', background: 'linear-gradient(135deg, #6cb6ff, #4a9eff)',
             color: '#fff', border: 'none', borderRadius: 10, fontSize: 16,
             fontWeight: 700, cursor: 'pointer',
-          }}
-        >
-          ← CONTINUE
-        </button>
+          }}>← CONTINUE</button>
       </div>
     );
   }

@@ -31,7 +31,7 @@ const PLAYER_PUZZLES = {
   ],
   ellen: [
     { id: 'ellen-1', label: 'Rätseltruhe 1', solvedLabel: 'Das Weisslacker-Massaker', chained: true, password: 'DasWeisslackerMassaker', caseSensitive: true, taunt: 'Ellen, du brauchst das richtige Passwort! Vielleicht hilft dir ein besonderes Licht weiter...', game: 'cheese', matrixClue: 'C1: 3 - 8 - 4 - 6 - 1 - 2' },
-    { id: 'ellen-2', label: 'Rätseltruhe 2', solvedLabel: 'Kreuzworträtsel', chained: true, password: 'geburtstag', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal', game: 'birthday-clue', matrixClue: 'D1: 4 - 9 - 3 - 1' },
+    { id: 'ellen-2', label: 'Rätseltruhe 2', solvedLabel: 'Kreuzworträtsel', chained: true, password: 'geburtstag', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal', game: 'birthday-clue', matrixClue: 'D1: 4 - 9 - 3 - 1', replayLabel: '📋 Lösung nochmal anschauen' },
   ],
   theresa: [
     { id: 'theresa-1', label: 'Rätseltruhe 1', solvedLabel: 'Himmelsritt', chained: true, password: 'pferde', taunt: 'Theresa, erstmal das richtige Passwort eingeben!', nearMiss: { pferd: 'Fast korrekt! Aber die Mehrzahl davon 😉' }, game: 'horse', replayLabel: '📋 Hinweis nochmal ansehen' },
@@ -86,8 +86,8 @@ export default function Dashboard({ player, onLogout }) {
   const handleChestOpen = async (puzzleId, game) => {
     setOpenedChests(prev => new Set([...prev, puzzleId]));
 
-    // Save progress to Supabase — mark as unlocked (or solved if no game)
-    const status = game ? 'unlocked' : 'solved';
+    // Save progress to Supabase — mark as unlocked (or solved if no game / birthday-clue)
+    const status = (!game || game === 'birthday-clue') ? 'solved' : 'unlocked';
     const { error } = await supabase.from('progress').upsert({
       player_id: player.id,
       puzzle_id: puzzleId,

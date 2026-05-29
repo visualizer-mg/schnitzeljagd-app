@@ -48,7 +48,7 @@ const PLAYER_PUZZLES = {
     { id: 'andrea-2', label: 'Rätseltruhe 2', solvedLabel: 'Obst-Rätsel', chained: true, password: 'markt', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'fruit-puzzle', replayLabel: '📋 Hinweis nochmal ansehen', replayLabel2: '🍎 Nochmal spielen' },
   ],
   rowena: [
-    { id: 'rowena-1', label: 'Foto-Puzzle', game: 'puzzle', matrixClue: 'C11: 2 - 0 - 5 - 9 - 3' },
+    { id: 'rowena-1', label: 'Treasure Chest 1', solvedLabel: 'Foto-Puzzle', chained: true, password: 'robin', taunt: 'Please enter the correct password.', wrongMsg: 'Wrong answer! Try again...', game: 'puzzle', matrixClue: 'C11: 2 - 0 - 5 - 9 - 3' },
     { id: 'rowena-2', label: 'Treasure Chest 2', solvedLabel: 'The Lost Sheep', chained: true, password: 'sheep', taunt: 'Which white animals can you find everywhere in Scotland?', wrongMsg: 'Wrong answer! Try again...', game: 'sheep-rescue', replayLabel: '🐑 Play again' },
   ],
 };

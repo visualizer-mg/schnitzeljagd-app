@@ -71,20 +71,6 @@ function drawObstacle(ctx, obs, images) {
   const { type, x, y, w, h } = obs;
   ctx.save();
 
-  // Kopf obstacle (special glow)
-  if (obs.isKopf) {
-    const img = images.kopf;
-    if (img && img.complete) {
-      // Glow effect
-      ctx.shadowColor = '#ff4400';
-      ctx.shadowBlur = 15;
-      ctx.drawImage(img, x, y, w, h);
-      ctx.shadowBlur = 0;
-    }
-    ctx.restore();
-    return;
-  }
-
   // Sprite-based obstacles (vehicles + barrier)
   if (obs.img) {
     const img = images[obs.img];
@@ -485,79 +471,6 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         }
       }
 
-      // ── Spawn Kopf at 25, 50, 75 km ──
-      const KOPF_KM = [25, 50, 75];
-      KOPF_KM.forEach(milestone => {
-        if (km >= milestone && !s.kopfSpawned.includes(milestone)) {
-          s.kopfSpawned.push(milestone);
-          // Spawn kopf on a random lane, well ahead of any other obstacles
-          const lane = Math.floor(Math.random() * LANE_COUNT);
-          // Remove any obstacles near the spawn point so kopf is clearly visible
-          s.obstacles = s.obstacles.filter(o => o.x < CANVAS_W - 100);
-          s.obstacles.push({
-            type: 'kopf',
-            w: 150,
-            h: 150,
-            canJump: false,
-            x: CANVAS_W + 200, // spawn far ahead so it's not behind something
-            y: LANE_Y[lane] - 120, // offset for bigger size
-            lane,
-            isKopf: true,
-          });
-          // Pause normal spawns briefly so kopf is alone
-          s.lastSpawn = s.frame + 120;
-        }
-      });
-
-      // ── Rocket jump — massive 3km boost, elephant flies off screen ──
-      if (s.rocketJump > 0) {
-        // Consume distance fast — entire 3km in ~2 seconds (120 frames)
-        const boost = Math.min(s.rocketJump, 80 * dt);
-        s.distance += boost;
-        s.rocketJump -= boost;
-
-        // Elephant flies upward off screen during rocket
-        if (!s.rocketFlyY) s.rocketFlyY = 0;
-        s.rocketFlyY = Math.min(s.rocketFlyY + 12 * dt, 900); // fly WAY up, off screen
-
-        // Speed up background scroll dramatically
-        s.bgScroll += 15 * dt;
-
-        // Clear obstacles during rocket (you're flying!)
-        s.obstacles = [];
-
-        // Lots of trail particles — fire and smoke
-        for (let i = 0; i < 3; i++) {
-          s.rocketTrail.push({
-            x: ELEPH_X + ELEPH_W / 2 + (Math.random() - 0.5) * 40,
-            y: s.laneY - s.rocketFlyY + ELEPH_H + Math.random() * 30,
-            alpha: 1,
-            size: 6 + Math.random() * 14,
-            color: Math.random() > 0.5 ? '#ff4400' : '#ffcc00',
-          });
-        }
-        // Smoke
-        if (s.frame % 3 === 0) {
-          s.rocketTrail.push({
-            x: ELEPH_X + ELEPH_W / 2 + (Math.random() - 0.5) * 60,
-            y: s.laneY - s.rocketFlyY + ELEPH_H + 20 + Math.random() * 20,
-            alpha: 0.6,
-            size: 15 + Math.random() * 20,
-            color: '#888',
-          });
-        }
-
-        // When done, bring elephant back down
-        if (s.rocketJump <= 0) {
-          s.rocketFlyY = 0;
-          s.jumping = false;
-          s.jumpOffsetY = 0;
-          s.jumpVel = 0;
-          s.invincible = 90; // brief invincibility after landing
-        }
-      } else {
-        s.rocketFlyY = 0;
-      }
 
       // Fade rocket trail
       s.rocketTrail = s.rocketTrail.filter(p => {
@@ -587,11 +500,6 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
 
       // ── Move obstacles (dt-scaled) ──
       s.obstacles.forEach(o => {
-        if (o.isKopf) {
-          // Kopf: static on road, moves at road speed
-          o.x -= s.speed * 1.8 * dt;
-          return;
-        }
         const isVehicle = o.type.startsWith('auto');
         const isWohnwagen = o.type === 'auto5';
         const speedMult = isWohnwagen ? 1.82 : isVehicle ? 2.28 : 1.8; // Wohnwagen 20% slower than cars
@@ -628,23 +536,6 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
             elephRect.y < oRect.y + oRect.h &&
             elephRect.y + elephRect.h > oRect.y
           ) {
-
-            // Kopf: MEGA jump — like Wohnwagen but 8x stronger, no damage!
-            if (o.isKopf && !o._collected) {
-              o._collected = true;
-              o.x = -999;
-              s.jumping = true;
-              s.jumpVel = JUMP_FORCE * 16; // 8x stronger than Wohnwagen (which is *2)
-              s.invincible = 300;
-              s.rocketJump = 5000; // +5km distance boost
-              try {
-                const sfx = new Audio('/assets/scooter-jump.wav');
-                sfx.volume = 1.0;
-                sfx.playbackRate = 0.3;
-                sfx.play().catch(() => {});
-              } catch(e) {}
-              continue;
-            }
 
             // Wohnwagen: if jumping and landing on it → bounce off (double-jump)
             if (o.type === 'auto5' && s.jumping && s.jumpVel > 0 && !o._bounced) {
@@ -807,8 +698,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
 
       // ── Elephant ──
       // Bottom of scooter wheels sits at lane center
-      const rocketFly = s.rocketFlyY || 0;
-      const ey = s.laneY + s.jumpOffsetY - rocketFly;
+      const ey = s.laneY + s.jumpOffsetY;
       const elephDrawY = ey - ELEPH_H; // draw from top, so bottom aligns with lane center
 
       // Shadow — always visible, shrinks when jumping (max 33% smaller)
@@ -956,30 +846,6 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
             100% { transform: translateX(calc(50vw + 400px)); opacity: 1; }
           }
         `}</style>
-        <style>{`
-          @keyframes kopf-roll {
-            0%   { transform: translateX(calc(50vw + 100px)) rotate(0deg); }
-            100% { transform: translateX(calc(-50vw - 100px)) rotate(-720deg); }
-          }
-        `}</style>
-        {/* Rolling Kopf above everything */}
-        <div style={{
-          width: '100%', height: 60, position: 'relative',
-          overflow: 'hidden', marginBottom: 8,
-        }}>
-          <img
-            src="/assets/kopf.png"
-            alt="Kopf"
-            style={{
-              position: 'absolute',
-              top: 5,
-              left: '50%',
-              width: 50,
-              height: 50,
-              animation: 'kopf-roll 4s linear infinite',
-            }}
-          />
-        </div>
         <img
           src="/assets/elephant-scooter.webp"
           alt="Elephant Scooter"
@@ -1000,10 +866,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
           <span style={{ color: colors.accent, fontWeight: 'bold' }}>
             Schaffe {TARGET_KM} km um Geheimcode freizuschalten!
           </span><br />
-          Extra-Leben bei {LIFE_MILESTONES.join(' & ')} km ❤️<br />
-          <span style={{ color: '#ff8800' }}>
-            🚀 Fahre in den großen Mostkopf rein für einen Raketenboost!
-          </span>
+          Extra-Leben bei {LIFE_MILESTONES.join(' & ')} km ❤️
         </div>
         <button
           onClick={startGame}

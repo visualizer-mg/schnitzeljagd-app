@@ -382,7 +382,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       // ── Speed increases with distance (slower ramp for 500km) ──
       const km = s.distance / 1000;
       s.speed = BASE_SPEED;
-      s.spawnInterval = Math.max(80 - km * 0.2, 50);
+      s.spawnInterval = Math.max(90 - km * 0.1, 65);
 
       // ── Distance (dt-scaled) ──
       s.distance += s.speed * PIXELS_PER_METER * 10 * dt;
@@ -414,8 +414,26 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
           return km < 15 && OBS_TYPES[idx].type === 'auto3' ? OBS_TYPES[3] : OBS_TYPES[idx];
         };
 
-        const lane = Math.floor(Math.random() * LANE_COUNT);
+        let lane = Math.floor(Math.random() * LANE_COUNT);
         const obsType = pickType();
+
+        // Ensure minimum gap on same lane (no landing into next obstacle)
+        const MIN_LANE_GAP = 250;
+        const sameLaneObs = s.obstacles.filter(o => o.lane === lane);
+        const tooClose = sameLaneObs.some(o => o.x > CANVAS_W - MIN_LANE_GAP);
+        if (tooClose) {
+          // Try another lane
+          const freeLanes = [0, 1, 2].filter(l => {
+            return !s.obstacles.some(o => o.lane === l && o.x > CANVAS_W - MIN_LANE_GAP);
+          });
+          if (freeLanes.length > 0) {
+            lane = freeLanes[Math.floor(Math.random() * freeLanes.length)];
+          } else {
+            // All lanes busy — skip this spawn
+            s.lastSpawn = s.frame;
+            return;
+          }
+        }
 
         s.obstacles.push({
           ...obsType,
@@ -432,23 +450,11 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         }
         s.lastSpawn = s.frame;
 
-        // ── Multi-spawn patterns to force lane changes ──
+        // ── Multi-spawn: max 2 lanes blocked, always leave 1 lane free ──
         const roll = Math.random();
 
-        if (km > 60 && roll < 0.15) {
-          // Triple: block 2 lanes + stagger 3rd → must dodge carefully
-          const lanes = [0, 1, 2].filter(l => l !== lane);
-          lanes.forEach(l => {
-            const t = pickType();
-            s.obstacles.push({
-              ...t,
-              x: CANVAS_W + 20 + Math.random() * 20,
-              y: LANE_Y[l] - t.h,
-              lane: l,
-            });
-          });
-        } else if (km > 20 && roll < 0.4) {
-          // Double: second obstacle on different lane (same x or slightly offset)
+        if (km > 30 && roll < 0.3) {
+          // Double: second obstacle on ONE other lane (always 1 lane free!)
           const lane2 = (lane + 1 + Math.floor(Math.random() * 2)) % LANE_COUNT;
           const type2 = pickType();
           s.obstacles.push({
@@ -458,17 +464,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
             lane: lane2,
           });
         }
-
-        // Back-to-back: sometimes spawn a follow-up on SAME lane (can't just stay, must jump or move)
-        if (km > 40 && Math.random() < 0.25) {
-          const t = pickType();
-          s.obstacles.push({
-            ...t,
-            x: CANVAS_W + 100 + Math.random() * 60,
-            y: LANE_Y[lane] - t.h,
-            lane,
-          });
-        }
+        // NO triple spawns, NO back-to-back on same lane
       }
 
 

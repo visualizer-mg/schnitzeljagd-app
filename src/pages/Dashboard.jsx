@@ -14,6 +14,7 @@ import TurtleGame from '../components/TurtleGame';
 import IndianaJonesGame from '../components/IndianaJonesGame';
 import MagicEyeGame from '../components/MagicEyeGame';
 import SnakeGame from '../components/SnakeGame';
+import SheepRescueGame from '../components/SheepRescueGame';
 
 // Puzzles per player — first chest = game
 // chained: true → needs password before chest can be opened
@@ -46,6 +47,7 @@ const PLAYER_PUZZLES = {
   ],
   rowena: [
     { id: 'rowena-1', label: 'Foto-Puzzle', game: 'puzzle', matrixClue: 'C11: 2 - 0 - 5 - 9 - 3' },
+    { id: 'rowena-2', label: 'Rätseltruhe 2', solvedLabel: 'The Lost Sheep', chained: true, password: 'sheep', taunt: 'Which white animals can you find everywhere in Scotland?', wrongMsg: 'Wrong answer! Try again...', game: 'sheep-rescue', matrixClue: 'C8: 8 - 9 - 5 - 3 - 6', replayLabel: '🐑 Play again' },
   ],
 };
 
@@ -243,6 +245,9 @@ export default function Dashboard({ player, onLogout }) {
                 }}
               >← Weiter</button>
             </div>
+          )}
+          {activeGame.game === 'sheep-rescue' && (
+            <SheepRescueGame matrixClue="C8: 8 - 9 - 5 - 3 - 6" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
           )}
         </div>
       </div>

@@ -1053,7 +1053,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       {/* DEBUG: instant win */}
       <button
         onClick={() => { stateRef.current.distance = TARGET_KM * 1000; }}
-        style={{ position: 'fixed', bottom: 10, right: 10, zIndex: 9999, opacity: 0.3, fontSize: 10, padding: '4px 8px' }}
+        style={{ position: 'fixed', bottom: 80, right: 10, zIndex: 99999, opacity: 0.5, fontSize: 14, padding: '10px 16px', background: '#333', color: '#fff', border: '2px solid #666', borderRadius: 8 }}
       >
         🏁 WIN
       </button>

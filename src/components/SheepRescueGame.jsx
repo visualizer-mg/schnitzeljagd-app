@@ -140,6 +140,21 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
     return Math.abs(a.r - b.r) + Math.abs(a.c - b.c) === 1;
   };
 
+  // Interpolate cells between two points (handles fast swiping)
+  const getCellsBetween = (from, to) => {
+    const cells = [];
+    const dr = to.r - from.r;
+    const dc = to.c - from.c;
+    const steps = Math.max(Math.abs(dr), Math.abs(dc));
+    if (steps === 0) return cells;
+    for (let i = 1; i <= steps; i++) {
+      const r = Math.round(from.r + (dr * i) / steps);
+      const c = Math.round(from.c + (dc * i) / steps);
+      cells.push({ r, c });
+    }
+    return cells;
+  };
+
   // Handle touch/move
   const handleMove = (e) => {
     e.preventDefault();
@@ -148,57 +163,60 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
     if (!cell) return;
 
     const last = trail[trail.length - 1];
-    if (cell.r === last.r && cell.c === last.c) return; // Same cell
+    if (cell.r === last.r && cell.c === last.c) return;
 
-    // Check if backtracking (going back on trail)
-    if (trail.length >= 2) {
-      const prev = trail[trail.length - 2];
-      if (cell.r === prev.r && cell.c === prev.c) {
-        setTrail(t => t.slice(0, -1));
+    // Get all cells between last position and current (handles fast swipes)
+    const cellsToProcess = isAdjacent(last, cell) ? [cell] : getCellsBetween(last, cell);
+
+    let currentTrail = [...trail];
+    for (const nextCell of cellsToProcess) {
+      const curLast = currentTrail[currentTrail.length - 1];
+      if (!isAdjacent(curLast, nextCell)) break;
+
+      // Check backtracking
+      if (currentTrail.length >= 2) {
+        const prev = currentTrail[currentTrail.length - 2];
+        if (nextCell.r === prev.r && nextCell.c === prev.c) {
+          currentTrail = currentTrail.slice(0, -1);
+          continue;
+        }
+      }
+
+      // Hit wall = reset
+      if (MAZE[nextCell.r][nextCell.c] === 1) {
+        setFailFlash(true);
+        setTrail([{ r: START.r, c: START.c }]);
+        setTimeout(() => setFailFlash(false), 300);
+        return;
+      }
+
+      // Already visited = skip
+      if (currentTrail.some(t => t.r === nextCell.r && t.c === nextCell.c)) continue;
+
+      currentTrail.push(nextCell);
+
+      // Check win
+      if (nextCell.r === END.r && nextCell.c === END.c) {
+        setTrail(currentTrail);
+        setMazeComplete(true);
+        touchActive.current = false;
+        setTimeout(() => {
+          setPhase('won');
+          if (onWin) onWin();
+        }, 800);
         return;
       }
     }
 
-    if (!isAdjacent(last, cell)) return; // Must be adjacent
-
-    // Hit a wall = reset
-    if (MAZE[cell.r][cell.c] === 1) {
-      setFailFlash(true);
-      setTrail([{ r: START.r, c: START.c }]);
-      setTimeout(() => setFailFlash(false), 300);
-      return;
-    }
-
-    // Already visited (not backtracking) = ignore
-    if (trail.some(t => t.r === cell.r && t.c === cell.c)) return;
-
-    const newTrail = [...trail, cell];
-    setTrail(newTrail);
-
-    // Check win
-    if (cell.r === END.r && cell.c === END.c) {
-      setMazeComplete(true);
-      touchActive.current = false;
-      setTimeout(() => {
-        setPhase('won');
-        if (onWin) onWin();
-      }, 800);
-    }
+    setTrail(currentTrail);
   };
 
   const handleTouchStart = (e) => {
     e.preventDefault();
     if (mazeComplete) return;
-    const cell = getCellFromTouch(e);
-    if (!cell) return;
-    // Must start from current trail end or from start
-    const last = trail[trail.length - 1];
-    if (cell.r === last.r && cell.c === last.c) {
-      touchActive.current = true;
-    } else if (cell.r === START.r && cell.c === START.c) {
-      setTrail([{ r: START.r, c: START.c }]);
-      touchActive.current = true;
-    }
+    // Always activate — reset trail to start fresh
+    setTrail([{ r: START.r, c: START.c }]);
+    touchActive.current = true;
   };
 
   const handleTouchEnd = (e) => {
@@ -301,7 +319,7 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
             onMouseDown={handleTouchStart}
             onMouseMove={(e) => { if (touchActive.current) handleMove(e); }}
             onMouseUp={handleTouchEnd}
-            style={{ display: 'block' }}
+            style={{ display: 'block', touchAction: 'none' }}
           />
         </div>
 

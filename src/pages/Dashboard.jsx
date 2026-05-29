@@ -40,7 +40,7 @@ const PLAYER_PUZZLES = {
     { id: 'theresa-2', label: 'Rätseltruhe 2', solvedLabel: '3-Striche-Rätsel', chained: true, password: 'farn', taunt: 'Theresa, erstmal das richtige Passwort eingeben!', game: 'taxi-draw', matrixClue: 'C14: 7 - 4 - 3 - 8' },
   ],
   beate: [
-    { id: 'beate-1', label: 'Rätseltruhe 1', solvedLabel: 'Braune Soße Spiel', game: 'braune-sosse', matrixClue: 'C5: 2 - 6 - 5 - 4 - 1 - 3' },
+    { id: 'beate-1', label: 'Rätseltruhe 1', solvedLabel: 'Braune Soße Spiel', chained: true, password: ['gemüse', 'gemuese'], taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'braune-sosse', matrixClue: 'C5: 2 - 6 - 5 - 4 - 1 - 3' },
     { id: 'beate-2', label: 'Rätseltruhe 2', solvedLabel: 'Gelöst!', chained: true, password: ['auge', 'augen'], taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'magic-eye', matrixClue: 'C13: 6 - 3 - 9 - 2 - 4' },
   ],
   andrea: [

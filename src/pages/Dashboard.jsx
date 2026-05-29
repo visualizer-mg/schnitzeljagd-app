@@ -27,8 +27,8 @@ const PLAYER_PUZZLES = {
     { id: 'andreas-3', label: 'Rätseltruhe 3', solvedLabel: 'Turtle Match', chained: true, password: 'ninja turtles', taunt: 'Krame, erstmal das richtige Passwort eingeben!', game: 'turtle', matrixClue: '' },
   ],
   mark: [
-    { id: 'mark-1', label: 'Rätsel 1', solvedLabel: 'X-Wing Assault', chained: true, password: 'star wars', taunt: 'Mark, so einfach isses net! Erstmal korrektes Passwort eingeben!', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
-    { id: 'mark-2', label: 'Rätsel 2', solvedLabel: 'Periodensystem', game: 'periodensystem', replayLabel: '📋 Ergebnis nochmal ansehen' },
+    { id: 'mark-1', label: 'Rätseltruhe 1', solvedLabel: 'X-Wing Assault', chained: true, password: 'star wars', taunt: 'Mark, so einfach isses net! Erstmal korrektes Passwort eingeben!', game: 'xwing', matrixClue: 'C10: 5 - 0 - 2 - 8 - 4' },
+    { id: 'mark-2', label: 'Rätseltruhe 2', solvedLabel: 'Periodensystem', game: 'periodensystem', replayLabel: '📋 Ergebnis nochmal ansehen' },
     { id: 'mark-3', label: 'Rätseltruhe 3', solvedLabel: 'Gelöst!', game: 'snake', matrixClue: 'D4: 0 - 5 - 3 - 9 - 7 - 4' },
   ],
   ellen: [

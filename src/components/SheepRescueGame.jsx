@@ -283,9 +283,19 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
                 border: isPath ? '0.5px solid rgba(0,0,0,0.05)' : 'none',
                 transition: isSheep ? 'none' : undefined,
               }}>
-                {isSheep && '🐑'}
+                {isSheep && (
+                  <img src="./assets/sheep/blacksheep.jpg" alt="sheep" style={{
+                    width: cellSize * 1.4, height: cellSize * 1.4,
+                    objectFit: 'contain', position: 'absolute',
+                    zIndex: 10, pointerEvents: 'none',
+                    borderRadius: '50%',
+                  }} />
+                )}
                 {isExit && !isSheep && (
-                  <span style={{ fontSize: cellSize * 0.5, opacity: 0.6 }}>🏁</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', zIndex: 5 }}>
+                    <span style={{ fontSize: cellSize * 0.5, opacity: 0.6 }}>🏁</span>
+                    <span style={{ fontSize: Math.max(6, cellSize * 0.3), color: '#f47067', fontWeight: 800, fontFamily: 'monospace', lineHeight: 1 }}>EXIT</span>
+                  </div>
                 )}
               </div>
             );

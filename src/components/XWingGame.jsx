@@ -918,6 +918,8 @@ export default function XWingGame({ onWin, matrixClue }) {
               Bewege den X-Wing mit dem Finger.<br />
               Er feuert automatisch. Du hast {MAX_LIVES} Leben.<br />
               Alle {HEALTH_DROP_INTERVAL} Kills droppt ein Medkit.<br /><br />
+              Du hast eine Rakete! Sie zerstört alles Sichtbare für 1 Sekunde.
+              Nutze sie weise, junger Padawan! 🚀<br /><br />
               <span style={{ color: '#ff6600', fontWeight: 'bold' }}>
                 Vorsicht vor dem Todeshonk!
               </span>

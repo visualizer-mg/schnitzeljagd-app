@@ -382,7 +382,7 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
       // ── Speed increases with distance (slower ramp for 500km) ──
       const km = s.distance / 1000;
       s.speed = BASE_SPEED;
-      s.spawnInterval = Math.max(90 - km * 0.1, 65);
+      s.spawnInterval = Math.max(90 - km * 0.1, 81);
 
       // ── Distance (dt-scaled) ──
       s.distance += s.speed * PIXELS_PER_METER * 10 * dt;
@@ -558,6 +558,14 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         }
       }
 
+      // ── Finish line approaching at 95km+ ──
+      if (km >= 95 && km < TARGET_KM) {
+        if (!s.finishLineX) s.finishLineX = CANVAS_W + 200;
+        // Scroll finish line towards player based on remaining distance
+        const remaining = TARGET_KM - km; // 5 to 0
+        s.finishLineX = CANVAS_W * (remaining / 5); // right to left as km approaches 100
+      }
+
       // ── Win check ──
       if (s.distance >= TARGET_KM * 1000) {
         try { const w = new Audio('/assets/horse-sounds/winning.mp3'); w.volume = 0.6; w.play().catch(() => {}); } catch(e) {}
@@ -666,6 +674,36 @@ export default function ScooterGame({ onWin, onBack, matrixClue, showResult }) {
         ctx.shadowColor = '#ff0000';
         ctx.shadowBlur = 15;
         ctx.fillText('+1 ❤️', lineX, ROAD_TOP - 15);
+        ctx.restore();
+      }
+
+      // ── Finish line (checkered, scrolls in from right at 95km+) ──
+      if (s.finishLineX != null && s.finishLineX > -20 && s.finishLineX < CANVAS_W + 20) {
+        ctx.save();
+        const fX = s.finishLineX;
+        const stripeW = 16;
+        const checkSize = 12;
+        for (let row = 0; row < Math.ceil((ROAD_BOTTOM - ROAD_TOP) / checkSize); row++) {
+          for (let col = 0; col < Math.ceil(stripeW / checkSize); col++) {
+            const isWhite = (row + col) % 2 === 0;
+            ctx.fillStyle = isWhite ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.8)';
+            ctx.fillRect(fX - stripeW / 2 + col * checkSize, ROAD_TOP + row * checkSize, checkSize, checkSize);
+          }
+        }
+        ctx.shadowColor = '#fff';
+        ctx.shadowBlur = 25;
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = stripeW + 8;
+        ctx.beginPath();
+        ctx.moveTo(fX, ROAD_TOP);
+        ctx.lineTo(fX, ROAD_BOTTOM);
+        ctx.stroke();
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillStyle = '#FFE000';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#FFE000';
+        ctx.shadowBlur = 15;
+        ctx.fillText('🏁 FINISH', fX, ROAD_TOP - 12);
         ctx.restore();
       }
 

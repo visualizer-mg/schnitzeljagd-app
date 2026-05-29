@@ -224,6 +224,7 @@ export default function PuzzleGame({ matrixClue, onWin, onBack }) {
       setShowHearts(true);
       playSound(SFX.winning, 1.0);
       clearInterval(timerRef.current);
+      if (onWin) onWin();
       // Hide hearts after animation
       setTimeout(() => setShowHearts(false), 4500);
     }
@@ -524,10 +525,10 @@ export default function PuzzleGame({ matrixClue, onWin, onBack }) {
         }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
           <h3 style={{ fontFamily: fonts.heading, color: GLOW_COLOR, marginBottom: 8 }}>
-            Herzlichen Glückwunsch!
+            Congratulations!
           </h3>
           <p style={{ color: colors.text, fontSize: 13, marginBottom: 16 }}>
-            Du hast einen Matrix Clue freigeschaltet:
+            You unlocked a Matrix Clue:
           </p>
           <div style={{
             padding: 16, borderRadius: 10,

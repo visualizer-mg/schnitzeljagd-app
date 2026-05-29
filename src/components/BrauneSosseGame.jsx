@@ -1094,15 +1094,6 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
         onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); startGame(); }}>
         <div style={{ textAlign: 'center', padding: 30 }}>
           <div style={{ fontSize: 60, marginBottom: 20 }}>🍲</div>
-          <h1 style={{
-            fontSize: 'clamp(28px, 7vw, 42px)',
-            fontWeight: 800,
-            color: '#fbbf24',
-            margin: '0 0 10px',
-            textShadow: '2px 2px 8px rgba(0,0,0,0.8)',
-          }}>
-            Braune Soße
-          </h1>
           <p style={{
             fontSize: 'clamp(14px, 3.5vw, 18px)',
             color: 'rgba(255,255,255,0.7)',
@@ -1110,7 +1101,7 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
             lineHeight: 1.6,
           }}>
             Wische über die Zutaten um sie zu schneiden!<br />
-            Vorsicht vor Bomben! 💣
+            Vorsicht vor Bomben und Köpfen! 💣
           </p>
           <div style={{
             display: 'inline-block',
@@ -1132,7 +1123,8 @@ export default function BrauneSosseGame({ matrixClue = '???', onWin }) {
           }}>
             Level 1–2: Zutaten schneiden<br />
             Danach: Die richtigen in den Topf werfen<br />
-            3 Leben — Bomben kosten ein Leben
+            3 Leben — Bomben kosten ein Leben<br />
+            Achtung: Wenn du eine Zutat nicht erwischst, werden 5 Punkte abgezogen!
           </div>
         </div>
       </div>

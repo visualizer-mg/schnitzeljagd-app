@@ -211,7 +211,7 @@ export default function Dashboard({ player, onLogout }) {
               display: 'flex', flexDirection: 'column', alignItems: 'center',
               justifyContent: 'center', minHeight: '80vh', padding: 24, textAlign: 'center',
             }}>
-              <div style={{ fontSize: 60, marginBottom: 16 }}>🎂🎉</div>
+              <div style={{ fontSize: 60, marginBottom: 32 }}>🎂🎉</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#7ee787', marginBottom: 12 }}>
                 Super! Du hast das Rätsel gelöst!
               </div>
@@ -229,7 +229,7 @@ export default function Dashboard({ player, onLogout }) {
                 border: '2px solid #6cb6ff', borderRadius: 12, marginBottom: 24,
               }}>
                 <div style={{ fontSize: 10, color: '#8b949e', letterSpacing: 2, marginBottom: 4 }}>MATRIX CLUE</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#6cb6ff', letterSpacing: 3, fontFamily: 'monospace' }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#6cb6ff', letterSpacing: 2, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
                   D1: 4 - 9 - 3 - 1
                 </div>
               </div>

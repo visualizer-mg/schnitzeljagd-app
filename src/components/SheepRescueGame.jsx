@@ -333,23 +333,21 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', minHeight: '80vh', padding: 24, textAlign: 'center',
       }}>
-        <div style={{ fontSize: 60, marginBottom: 24 }}>🐑🎉🏆</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#7ee787', marginBottom: 12 }}>
-          SHEEP RESCUED!
+        <div style={{ fontSize: 60, marginBottom: 24 }}>🐑✅</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: '#ffa657', marginBottom: 12, fontFamily: 'monospace', letterSpacing: 1 }}>
+          OPERATION SHEEP RESCUE
         </div>
-        <div style={{ fontSize: 15, color: '#e6edf3', lineHeight: 1.8, marginBottom: 8 }}>
-          You found the exit in {moveCount} moves!<br/>Well done, Rowena!
-        </div>
-        <div style={{ fontSize: 13, color: '#8b949e', marginBottom: 8 }}>
-          You unlocked a Matrix Clue:
+        <div style={{ fontSize: 15, color: '#7ee787', lineHeight: 1.8, marginBottom: 16, fontWeight: 600 }}>
+          You mastered the first step!<br/>You are getting closer.
         </div>
         <div style={{
-          padding: '16px 24px', background: 'rgba(108, 182, 255, 0.1)',
-          border: '2px solid #6cb6ff', borderRadius: 12, marginBottom: 24,
+          padding: '16px 20px', background: 'rgba(255, 166, 87, 0.08)',
+          border: '2px solid rgba(255, 166, 87, 0.3)', borderRadius: 12, marginBottom: 24,
+          maxWidth: 320,
         }}>
-          <div style={{ fontSize: 10, color: '#8b949e', letterSpacing: 2, marginBottom: 4 }}>MATRIX CLUE</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#6cb6ff', letterSpacing: 2, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
-            {matrixClue || 'C8: 8 - 9 - 5 - 3 - 6'}
+          <div style={{ fontSize: 10, color: '#ffa657', letterSpacing: 2, marginBottom: 8 }}>🔍 NEXT CLUE</div>
+          <div style={{ fontSize: 14, color: '#e6edf3', lineHeight: 1.7 }}>
+            Maybe have a look at the <strong style={{ color: '#ffa657' }}>copper scales</strong> in the entrance area of the house...
           </div>
         </div>
         <button onClick={onBack}

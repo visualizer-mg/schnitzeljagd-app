@@ -45,7 +45,7 @@ const PLAYER_PUZZLES = {
   ],
   andrea: [
     { id: 'andrea-1', label: 'Rätseltruhe 1', solvedLabel: 'Memory-Spiel', chained: true, password: 'memory', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'memory', matrixClue: 'D2: 7 - 8 - 1 - 2' },
-    { id: 'andrea-2', label: 'Rätseltruhe 2', solvedLabel: 'Obst-Rätsel', chained: true, password: 'markt', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'fruit-puzzle', replayLabel: '🍎 Nochmal spielen' },
+    { id: 'andrea-2', label: 'Rätseltruhe 2', solvedLabel: 'Obst-Rätsel', chained: true, password: 'markt', taunt: 'Bitte korrektes Passwort eingeben.', wrongMsg: 'Leider falsch. Probier\'s nochmal!', game: 'fruit-puzzle', replayLabel: '📋 Hinweis nochmal ansehen' },
   ],
   rowena: [
     { id: 'rowena-1', label: 'Foto-Puzzle', game: 'puzzle', matrixClue: 'C11: 2 - 0 - 5 - 9 - 3' },
@@ -253,7 +253,7 @@ export default function Dashboard({ player, onLogout }) {
             <SheepRescueGame matrixClue="C8: 8 - 9 - 5 - 3 - 6" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
           )}
           {activeGame.game === 'fruit-puzzle' && (
-            <FruitPuzzleGame onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
+            <FruitPuzzleGame onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} showResult={activeGame.showResult || false} />
           )}
         </div>
       </div>

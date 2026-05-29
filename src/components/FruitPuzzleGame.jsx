@@ -8,8 +8,8 @@ import React, { useState, useEffect } from 'react';
 // Matrix-Clue C7 → physisch im Briefing (UV-Tinte)
 // ═══════════════════════════════════════════════════════
 
-export default function FruitPuzzleGame({ onWin, onBack }) {
-  const [level, setLevel] = useState(0); // 0 = start screen
+export default function FruitPuzzleGame({ onWin, onBack, showResult }) {
+  const [level, setLevel] = useState(showResult ? 4 : 0); // 0=start, 4=win
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [showTransition, setShowTransition] = useState(false);

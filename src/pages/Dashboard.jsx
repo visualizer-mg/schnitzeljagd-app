@@ -31,6 +31,7 @@ const PLAYER_PUZZLES = {
   ],
   ellen: [
     { id: 'ellen-1', label: 'Rätseltruhe 1', solvedLabel: 'Das Weisslacker-Massaker', chained: true, password: 'DasWeisslackerMassaker', caseSensitive: true, taunt: 'Ellen, du brauchst das richtige Passwort! Vielleicht hilft dir ein besonderes Licht weiter...', game: 'cheese', matrixClue: 'C1: 3 - 8 - 4 - 6 - 1 - 2' },
+    { id: 'ellen-2', label: 'Rätseltruhe 2', solvedLabel: 'Kreuzworträtsel', password: 'geburtstag', taunt: 'Ellen, das Lösungswort des Kreuzworträtsels ist dein Passwort!', game: 'birthday-clue', matrixClue: 'D1: 4 - 9 - 3 - 1' },
   ],
   theresa: [
     { id: 'theresa-1', label: 'Rätseltruhe 1', solvedLabel: 'Himmelsritt', chained: true, password: 'pferde', taunt: 'Theresa, erstmal das richtige Passwort eingeben!', nearMiss: { pferd: 'Fast korrekt! Aber die Mehrzahl davon 😉' }, game: 'horse', replayLabel: '📋 Hinweis nochmal ansehen' },
@@ -204,6 +205,44 @@ export default function Dashboard({ player, onLogout }) {
           )}
           {activeGame.game === 'snake' && (
             <SnakeGame matrixClue="D4: 0 - 5 - 3 - 9 - 7 - 4" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
+          )}
+          {activeGame.game === 'birthday-clue' && (
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', minHeight: '80vh', padding: 24, textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 60, marginBottom: 16 }}>🎂🎉</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#7ee787', marginBottom: 12 }}>
+                Super! Du hast das Rätsel gelöst!
+              </div>
+              <div style={{ fontSize: 16, color: '#e6edf3', lineHeight: 1.8, marginBottom: 24, maxWidth: 340 }}>
+                An dieser Stelle soll nochmal gesagt sein:<br/>
+                <span style={{ fontSize: 20, fontWeight: 700, color: '#ffa657' }}>
+                  Alles Liebe zum Geburtstag! 🥳
+                </span>
+              </div>
+              <div style={{ fontSize: 13, color: '#8b949e', marginBottom: 8 }}>
+                Du hast einen Matrix Clue freigeschaltet:
+              </div>
+              <div style={{
+                padding: '16px 24px', background: 'rgba(108, 182, 255, 0.1)',
+                border: '2px solid #6cb6ff', borderRadius: 12, marginBottom: 24,
+              }}>
+                <div style={{ fontSize: 10, color: '#8b949e', letterSpacing: 2, marginBottom: 4 }}>MATRIX CLUE</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#6cb6ff', letterSpacing: 3, fontFamily: 'monospace' }}>
+                  D1: 4 - 9 - 3 - 1
+                </div>
+              </div>
+              <button
+                onClick={() => { handleGameWin(activeGame.puzzleId); handleGameClose(); }}
+                onTouchEnd={(e) => { e.stopPropagation(); handleGameWin(activeGame.puzzleId); handleGameClose(); }}
+                style={{
+                  padding: '14px 32px', background: 'linear-gradient(135deg, #6cb6ff, #4a9eff)',
+                  color: '#fff', border: 'none', borderRadius: 10, fontSize: 16,
+                  fontWeight: 700, cursor: 'pointer',
+                }}
+              >← Weiter</button>
+            </div>
           )}
         </div>
       </div>

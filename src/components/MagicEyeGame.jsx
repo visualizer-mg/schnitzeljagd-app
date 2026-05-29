@@ -274,7 +274,7 @@ export default function MagicEyeGame({ matrixClue, onWin, onBack }) {
             color: 'rgba(255,255,255,0.5)',
             marginBottom: 12,
           }}>
-            Bitte das korrekte Passwort eingeben zum Lösen dieses Rätsels...
+            Was siehst du auf dem Bild? Es gibt nur eine korrekte Antwort :)
           </div>
 
           {/* Input + Button */}

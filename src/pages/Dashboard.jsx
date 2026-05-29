@@ -191,7 +191,7 @@ export default function Dashboard({ player, onLogout }) {
             <MemoryGame matrixClue="D2: 7 - 8 - 1 - 2" onWin={() => handleGameWin(activeGame.puzzleId)} />
           )}
           {activeGame.game === 'puzzle' && (
-            <PuzzleGame matrixClue="C11: 2 - 0 - 5 - 9 - 3" onWin={() => handleGameWin(activeGame.puzzleId)} />
+            <PuzzleGame matrixClue="C11: 2 - 0 - 5 - 9 - 3" onWin={() => handleGameWin(activeGame.puzzleId)} onBack={handleGameClose} />
           )}
           {activeGame.game === 'periodensystem' && (
             <PeriodensystemGame onWin={() => handleGameWin(activeGame.puzzleId)} onBack={() => setActiveGame(null)} showResult={activeGame.showResult || false} />

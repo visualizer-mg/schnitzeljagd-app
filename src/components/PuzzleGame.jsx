@@ -193,7 +193,8 @@ function HeartParticles() {
   );
 }
 
-export default function PuzzleGame({ matrixClue, onWin }) {
+export default function PuzzleGame({ matrixClue, onWin, onBack }) {
+  const [phase, setPhase] = useState('intro'); // 'intro' | 'playing'
   const [tiles, setTiles] = useState(() => shuffleTiles());
   const [solved, setSolved] = useState(false);
   const [moves, setMoves] = useState(0);
@@ -349,58 +350,78 @@ export default function PuzzleGame({ matrixClue, onWin }) {
   const clusterCount = countClusters(tiles);
   const BORDER_W = 2;
 
+  // ═══ INTRO SCREEN ═══
+  if (phase === 'intro') {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: '80vh', padding: 24, textAlign: 'center',
+        color: colors.text,
+      }}>
+        <div style={{ fontSize: 56, marginBottom: 20 }}>🧩📸</div>
+        <div style={{
+          fontSize: 22, fontWeight: 800, color: '#ffa657',
+          letterSpacing: 1, marginBottom: 16, fontFamily: 'monospace',
+        }}>
+          PHOTO PUZZLE
+        </div>
+        <div style={{
+          fontSize: 15, color: '#e6edf3', lineHeight: 1.8, maxWidth: 320, marginBottom: 8,
+        }}>
+          Welcome to the Photo Puzzle!<br/>
+          Are you ready for some serious brainwork?
+        </div>
+        <div style={{
+          fontSize: 13, color: '#8b949e', lineHeight: 1.7, maxWidth: 320, marginBottom: 20,
+          padding: '12px 16px', background: 'rgba(255, 166, 87, 0.08)',
+          border: '1px solid rgba(255, 166, 87, 0.2)', borderRadius: 10,
+          textAlign: 'left',
+        }}>
+          <strong style={{ color: '#ffa657' }}>How it works:</strong><br/>
+          • Find the correct picture by arranging all 45 tiles<br/>
+          • Drag a tile onto another to swap them<br/>
+          • Tiles in the correct position get a <span style={{ color: '#FFE000', fontWeight: 700 }}>yellow border</span><br/>
+          • Arrange all tiles correctly to win!
+        </div>
+        <div style={{
+          fontSize: 12, color: '#6cb6ff', lineHeight: 1.6, maxWidth: 320, marginBottom: 28,
+          fontStyle: 'italic',
+        }}>
+          Hint: Maybe the solution has something to do with "chickens"... 🐔
+        </div>
+        <button
+          onClick={() => setPhase('playing')}
+          onTouchEnd={(e) => { e.stopPropagation(); setPhase('playing'); }}
+          style={{
+            padding: '16px 40px',
+            background: 'linear-gradient(135deg, #ffa657, #f78166)',
+            color: '#fff', border: 'none', borderRadius: 12, fontSize: 18,
+            fontWeight: 700, cursor: 'pointer', letterSpacing: 1,
+          }}
+        >
+          🧩 LET'S GO!
+        </button>
+        {onBack && (
+          <button onClick={onBack}
+            onTouchEnd={(e) => { e.stopPropagation(); if (onBack) onBack(); }}
+            style={{
+              marginTop: 16, padding: '8px 20px', background: 'transparent',
+              color: '#8b949e', border: '1px solid #30363d', borderRadius: 8,
+              fontSize: 13, cursor: 'pointer',
+            }}>← Back</button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{
-      padding: 24, color: colors.text,
+      padding: 12, color: colors.text,
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       maxWidth: 500, margin: '0 auto', userSelect: 'none',
     }}>
       {/* Heart animation on win */}
       {showHearts && <HeartParticles />}
-
-      <h2 style={{ fontFamily: fonts.heading, marginBottom: 4, textAlign: 'center' }}>
-        🧩 Photo Puzzle (Rowena)
-      </h2>
-      <p style={{ color: colors.textDim, fontSize: 12, marginBottom: 16, textAlign: 'center' }}>
-        Arrange all 45 tiles in the correct order!<br />
-        Drag a tile onto another to swap them.
-      </p>
-
-      {/* Stats bar */}
-      <div style={{
-        display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap', justifyContent: 'center',
-      }}>
-        <div style={{
-          padding: '6px 14px', borderRadius: 8,
-          background: 'rgba(108,182,255,0.1)', border: '1px solid rgba(108,182,255,0.2)',
-          fontFamily: fonts.mono, fontSize: 11, color: colors.blue,
-        }}>
-          Moves: {moves}
-        </div>
-        <div style={{
-          padding: '6px 14px', borderRadius: 8,
-          background: 'rgba(255,166,87,0.1)', border: '1px solid rgba(255,166,87,0.2)',
-          fontFamily: fonts.mono, fontSize: 11, color: '#FFA657',
-        }}>
-          Time: {formatTime(elapsed)}
-        </div>
-        <div style={{
-          padding: '6px 14px', borderRadius: 8,
-          background: 'rgba(126,231,135,0.1)', border: '1px solid rgba(126,231,135,0.2)',
-          fontFamily: fonts.mono, fontSize: 11, color: colors.green,
-        }}>
-          Correct: {correctCount}/{TOTAL}
-        </div>
-        {clusterCount > 0 && moves > 0 && !solved && (
-          <div style={{
-            padding: '6px 14px', borderRadius: 8,
-            background: 'rgba(255,224,0,0.1)', border: '1px solid rgba(255,224,0,0.2)',
-            fontFamily: fonts.mono, fontSize: 11, color: GLOW_COLOR,
-          }}>
-            Groups: {clusterCount}
-          </div>
-        )}
-      </div>
 
       {/* Drag ghost — sized to match actual tile */}
       {dragImg && dragFrom !== null && (() => {
@@ -522,28 +543,6 @@ export default function PuzzleGame({ matrixClue, onWin }) {
         </div>
       )}
 
-      {/* Reset */}
-      <button
-        onClick={() => {
-          setTiles(shuffleTiles());
-          setDragFrom(null);
-          setDragOver(null);
-          setDragImg(null);
-          setSolved(false);
-          setMoves(0);
-          setStartTime(null);
-          setElapsed(0);
-          setShowHearts(false);
-          clearInterval(timerRef.current);
-        }}
-        style={{
-          marginTop: 16, padding: '8px 20px', borderRadius: 8,
-          background: 'rgba(244,112,103,0.1)', border: '1px solid rgba(244,112,103,0.2)',
-          color: '#F47067', cursor: 'pointer', fontFamily: fonts.mono, fontSize: 11,
-        }}
-      >
-        🔄 Shuffle
-      </button>
     </div>
   );
 }

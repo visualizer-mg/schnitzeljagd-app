@@ -416,7 +416,7 @@ export default function PuzzleGame({ matrixClue, onWin, onBack }) {
 
   return (
     <div style={{
-      padding: 12, color: colors.text,
+      padding: '48px 12px 12px', color: colors.text,
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       maxWidth: 500, margin: '0 auto', userSelect: 'none',
     }}>

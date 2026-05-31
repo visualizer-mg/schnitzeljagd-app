@@ -135,7 +135,6 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
         if (final.r === EXIT.r && final.c === EXIT.c) {
           setTimeout(() => {
             setPhase('won');
-            if (onWin) onWin();
           }, 500);
         }
       }
@@ -353,8 +352,8 @@ export default function SheepRescueGame({ matrixClue, onWin, onBack }) {
             Maybe have a look at the <strong style={{ color: '#ffa657' }}>copper scales</strong> in the entrance area of the house...
           </div>
         </div>
-        <button onClick={onBack}
-          onTouchEnd={(e) => { e.stopPropagation(); if (onBack) onBack(); }}
+        <button onClick={() => { if (onWin) onWin(); if (onBack) onBack(); }}
+          onTouchEnd={(e) => { e.stopPropagation(); if (onWin) onWin(); if (onBack) onBack(); }}
           style={{
             padding: '14px 32px', background: 'linear-gradient(135deg, #6cb6ff, #4a9eff)',
             color: '#fff', border: 'none', borderRadius: 10, fontSize: 16,
